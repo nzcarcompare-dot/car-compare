@@ -1,14 +1,21 @@
 /**
  * NZ Car Comparator — Test Server
  *
- * Uses the Carjam TEST environment (free, no cost).
- * Test site requires HTTP Basic Auth: username=test password=test
- * You still need your own API key from https://test.carjam.co.nz/me/developer/
+ * Demo plates (work without API key):
+ *   ABC123 = Toyota Corolla (petrol)
+ *   MAZDA1 = Mazda CX-5 (petrol)
+ *   UTE001 = Ford Ranger (diesel)
+ *   SUV999 = Toyota RAV4 Hybrid
+ *   EV2024 = Tesla Model 3 (EV)
+ *   LEAF22 = Nissan Leaf (EV)
+ *   BYD001 = BYD Atto 3 (EV)
+ *   PHEV01 = Mitsubishi Outlander PHEV
  *
- * Test plates to try: 360J  APY771  100LW  ARM407
+ * For real NZ plates, set CARJAM_TEST_KEY and use the Carjam test environment.
  *
  * Usage:
- *   CARJAM_TEST_KEY=your_key node server.js
+ *   node server.js                          (demo mode, no key needed)
+ *   CARJAM_TEST_KEY=your_key node server.js (real plate lookup)
  *   Then open http://localhost:3001
  */
 
@@ -21,7 +28,6 @@ const cache = new NodeCache({ stdTTL: 3600 });
 const CARJAM_KEY = process.env.CARJAM_TEST_KEY || '';
 const PORT = process.env.PORT || 3001;
 
-// Basic auth header for test.carjam.co.nz (username: test, password: test)
 const CARJAM_BASIC = 'Basic ' + Buffer.from('test:test').toString('base64');
 
 const FUEL_TYPE_MAP = {
@@ -33,33 +39,93 @@ const FUEL_TYPE_MAP = {
   '15': 'hybrid',
 };
 
+// ─── Demo vehicle database ────────────────────────────────────────────────────
+// Realistic NZ vehicles with economy figures from RightCar/EECA.
+// These return instantly without hitting any API.
+const DEMO_VEHICLES = {
+  'ABC123': {
+    plate: 'ABC123', year: '2021', make: 'TOYOTA', model: 'COROLLA',
+    submodel: 'GX 2.0P/CVT', colour: 'White', transmission: 'CVT automatic',
+    fuelType: 'petrol', cc: '1987', odometer: '28450', wof: 'P',
+    economy: { fuelConsumptionPer100km: 6.8, electricConsumptionPer100km: null, co2gPerKm: 158, economyStars: 3.5, co2Stars: 3 },
+    _demo: true,
+  },
+  'EV2024': {
+    plate: 'EV2024', year: '2023', make: 'TESLA', model: 'MODEL 3',
+    submodel: 'Standard Range RWD', colour: 'Pearl White', transmission: 'Single speed automatic',
+    fuelType: 'ev', cc: null, odometer: '11200', wof: 'P',
+    economy: { fuelConsumptionPer100km: null, electricConsumptionPer100km: 14.9, co2gPerKm: 0, economyStars: 6, co2Stars: 6 },
+    _demo: true,
+  },
+  'LEAF22': {
+    plate: 'LEAF22', year: '2022', make: 'NISSAN', model: 'LEAF',
+    submodel: 'e+ 62kWh', colour: 'Gun Metallic', transmission: 'Single speed automatic',
+    fuelType: 'ev', cc: null, odometer: '19300', wof: 'P',
+    economy: { fuelConsumptionPer100km: null, electricConsumptionPer100km: 17.2, co2gPerKm: 0, economyStars: 6, co2Stars: 6 },
+    _demo: true,
+  },
+  'SUV999': {
+    plate: 'SUV999', year: '2020', make: 'TOYOTA', model: 'RAV4',
+    submodel: 'GXL HYBRID AWD', colour: 'Graphite', transmission: 'CVT automatic',
+    fuelType: 'hybrid', cc: '2487', odometer: '44100', wof: 'P',
+    economy: { fuelConsumptionPer100km: 5.4, electricConsumptionPer100km: null, co2gPerKm: 123, economyStars: 4.5, co2Stars: 4.5 },
+    _demo: true,
+  },
+  'UTE001': {
+    plate: 'UTE001', year: '2021', make: 'FORD', model: 'RANGER',
+    submodel: 'XLT 2.0D/4WD/6AT', colour: 'Meteor Grey', transmission: '6-speed automatic',
+    fuelType: 'diesel', cc: '1996', odometer: '51800', wof: 'P',
+    economy: { fuelConsumptionPer100km: 8.1, electricConsumptionPer100km: null, co2gPerKm: 213, economyStars: 2, co2Stars: 2 },
+    _demo: true,
+  },
+  'PHEV01': {
+    plate: 'PHEV01', year: '2022', make: 'MITSUBISHI', model: 'OUTLANDER',
+    submodel: 'PHEV AWD', colour: 'Diamond White', transmission: 'Single speed automatic',
+    fuelType: 'phev', cc: '2360', odometer: '22600', wof: 'P',
+    economy: { fuelConsumptionPer100km: 1.9, electricConsumptionPer100km: 22.0, co2gPerKm: 43, economyStars: 5.5, co2Stars: 5.5 },
+    _demo: true,
+  },
+  'MAZDA1': {
+    plate: 'MAZDA1', year: '2019', make: 'MAZDA', model: 'CX-5',
+    submodel: 'GSX 2.5P/AWD/6AT', colour: 'Soul Red Crystal', transmission: '6-speed automatic',
+    fuelType: 'petrol', cc: '2488', odometer: '63200', wof: 'P',
+    economy: { fuelConsumptionPer100km: 7.6, electricConsumptionPer100km: null, co2gPerKm: 177, economyStars: 3, co2Stars: 2.5 },
+    _demo: true,
+  },
+  'BYD001': {
+    plate: 'BYD001', year: '2024', make: 'BYD', model: 'ATTO 3',
+    submodel: 'Extended Range', colour: 'Cosmos Black', transmission: 'Single speed automatic',
+    fuelType: 'ev', cc: null, odometer: '4100', wof: 'P',
+    economy: { fuelConsumptionPer100km: null, electricConsumptionPer100km: 15.4, co2gPerKm: 0, economyStars: 6, co2Stars: 6 },
+    _demo: true,
+  },
+};
+
 // ─── Carjam ABCD lookup (test env) ───────────────────────────────────────────
 async function fetchCarjam(plate) {
-  const cacheKey = `cj:${plate}`;
+  const cacheKey = 'cj:' + plate;
   const hit = cache.get(cacheKey);
   if (hit) return { ...hit, _cached: true };
 
-  if (!CARJAM_KEY) throw new Error('No CARJAM_TEST_KEY set — see startup instructions');
+  if (!CARJAM_KEY) throw new Error('No CARJAM_TEST_KEY set');
 
-  const url = `https://test.carjam.co.nz/a/vehicle:abcd?key=${encodeURIComponent(CARJAM_KEY)}&plate=${encodeURIComponent(plate)}`;
-  const res = await fetch(url, {
-    headers: { Authorization: CARJAM_BASIC },
-  });
+  const url = 'https://test.carjam.co.nz/a/vehicle:abcd?key=' + encodeURIComponent(CARJAM_KEY) + '&plate=' + encodeURIComponent(plate);
+  const res = await fetch(url, { headers: { Authorization: CARJAM_BASIC } });
 
   const text = await res.text();
-  console.log(`[carjam raw] ${plate}:`, text.slice(0, 300));
+  console.log('[carjam raw] ' + plate + ':', text.slice(0, 300));
 
-  if (!res.ok) throw new Error(`Carjam HTTP ${res.status}: ${text.slice(0, 200)}`);
+  if (!res.ok) throw new Error('Carjam HTTP ' + res.status + ': ' + text.slice(0, 200));
 
   let data;
   try { data = JSON.parse(text); }
-  catch { throw new Error(`Carjam returned unexpected response: ${text.slice(0, 200)}`); }
+  catch { throw new Error('Carjam returned unexpected response: ' + text.slice(0, 200)); }
 
   if (data && data.error) {
     const msg = typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error));
-    throw new Error(`Carjam error: ${msg}`);
+    throw new Error('Carjam error: ' + msg);
   }
-  if (!data || !data.make) throw new Error(`Plate not found or no data returned`);
+  if (!data || !data.make) throw new Error('Plate not found in Carjam');
 
   cache.set(cacheKey, data);
   return data;
@@ -67,16 +133,22 @@ async function fetchCarjam(plate) {
 
 // ─── Plate lookup endpoint ────────────────────────────────────────────────────
 app.get('/api/lookup/:plate', async (req, res) => {
-  const plate = req.params.plate.toUpperCase().replace(/\s/g, '');
+  const plate = req.params.plate.toUpperCase().replace(/s/g, '');
   if (!/^[A-Z0-9]{1,8}$/.test(plate)) {
     return res.status(400).json({ error: 'Invalid plate format' });
   }
 
+  // Check demo database first — works without any API key
+  if (DEMO_VEHICLES[plate]) {
+    console.log('[demo] ' + plate + ': returning demo data');
+    return res.json(DEMO_VEHICLES[plate]);
+  }
+
+  // Try Carjam live API
   try {
     const cj = await fetchCarjam(plate);
     const fuelType = FUEL_TYPE_MAP[String(cj.fuel_type)] || 'petrol';
-
-    res.json({
+    return res.json({
       plate: cj.plate,
       year: cj.year_of_manufacture,
       make: cj.make,
@@ -90,37 +162,33 @@ app.get('/api/lookup/:plate', async (req, res) => {
       odometer: cj.latest_odometer_reading,
       wof: cj.result_of_latest_wof_inspection,
       _cached: cj._cached || false,
-      // FuelSaver not available in test mode — user fills economy manually
       economy: null,
     });
   } catch (err) {
-    console.error(`[lookup] ${plate}:`, err.message);
+    console.error('[lookup] ' + plate + ':', err.message);
     res.status(502).json({ error: err.message });
   }
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, keySet: !!CARJAM_KEY, cachedPlates: cache.keys() });
+  res.json({ ok: true, keySet: !!CARJAM_KEY, cachedPlates: cache.keys(), demoPlates: Object.keys(DEMO_VEHICLES) });
 });
 
 // ─── Serve the frontend HTML inline ──────────────────────────────────────────
 app.get('/', (_req, res) => res.send(HTML));
 
 app.listen(PORT, () => {
-  console.log(`\n  NZ Car Comparator (TEST MODE)`);
-  console.log(`  ─────────────────────────────`);
-  if (!CARJAM_KEY) {
-    console.log(`  ⚠  No API key set!`);
-    console.log(`     Run with: CARJAM_TEST_KEY=your_key node server.js`);
-    console.log(`     Get a key: https://test.carjam.co.nz/me/developer/\n`);
+  console.log('\n  NZ Car Comparator');
+  console.log('  ─────────────────────────────');
+  console.log('  Demo mode: always on — plates ABC123 EV2024 LEAF22 SUV999 UTE001 PHEV01 MAZDA1 BYD001');
+  if (CARJAM_KEY) {
+    console.log('  Carjam test API: enabled (real NZ plates also work)');
   } else {
-    console.log(`  ✓  Carjam test key set`);
+    console.log('  Carjam API: not set (demo plates only)');
   }
-  console.log(`  Open: http://localhost:${PORT}`);
-  console.log(`  Test plates: 360J  APY771  100LW  ARM407\n`);
+  console.log('  Open: http://localhost:' + PORT + '\n');
 });
 
-// ─── Frontend HTML ────────────────────────────────────────────────────────────
 const HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -221,12 +289,16 @@ const HTML = `<!DOCTYPE html>
 </header>
 <main>
   <div class="test-plates-bar">
-    <strong>Test plates you can use:</strong>
-    <code onclick="setPlate('a','360J')">360J</code>
-    <code onclick="setPlate('a','APY771')">APY771</code>
-    <code onclick="setPlate('b','100LW')">100LW</code>
-    <code onclick="setPlate('b','ARM407')">ARM407</code>
-    — click a plate to fill it in, then hit Look up. Fuel economy filled manually (FuelSaver not used in test mode).
+    <strong>Demo plates:</strong>
+    <code onclick="setPlate('a','ABC123')">ABC123</code> Corolla &nbsp;
+    <code onclick="setPlate('a','MAZDA1')">MAZDA1</code> CX-5 &nbsp;
+    <code onclick="setPlate('a','UTE001')">UTE001</code> Ranger &nbsp;
+    <code onclick="setPlate('a','SUV999')">SUV999</code> RAV4 Hybrid &nbsp;
+    <code onclick="setPlate('b','EV2024')">EV2024</code> Tesla M3 &nbsp;
+    <code onclick="setPlate('b','LEAF22')">LEAF22</code> Nissan Leaf &nbsp;
+    <code onclick="setPlate('b','BYD001')">BYD001</code> BYD Atto 3 &nbsp;
+    <code onclick="setPlate('b','PHEV01')">PHEV01</code> Outlander PHEV
+    <br>Click any plate to fill it in, then hit <strong>Look up</strong>. These work without an API key.
   </div>
 
   <div class="cars-grid">
