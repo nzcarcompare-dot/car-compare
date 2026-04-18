@@ -687,26 +687,6 @@ function uf(car){
   document.getElementById(car+'-elec').classList.toggle('show', f === 'ev');
   document.getElementById(car+'-phev').classList.toggle('show', f === 'phev');
 }
-
-uf('a');
-uf('b');
-
-window.toggleTheme = toggleTheme;
-window.updateKm = updateKm;
-window.setMode = setMode;
-window.filterList = filterList;
-window.openList = openList;
-window.closeList = closeList;
-window.selectVehicle = selectVehicle;
-window.lookupPlate = lookupPlate;
-window.applyManual = applyManual;
-window.swapCars = swapCars;
-window.uf = uf;
-window.setTab = setTab;
-window.compare = compare;
-window.shareResults = shareResults;
-
-init();
 function setTab(id){
   document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', ['overview','costs','environment','details'][i] === id));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + id));
@@ -876,6 +856,24 @@ function shareResults(){
     setTimeout(() => t.classList.remove('show'), 2500);
   });
 }
+
+window.toggleTheme = toggleTheme;
+window.updateKm = updateKm;
+window.setMode = setMode;
+window.filterList = filterList;
+window.openList = openList;
+window.closeList = closeList;
+window.selectVehicle = selectVehicle;
+window.lookupPlate = lookupPlate;
+window.applyManual = applyManual;
+window.swapCars = swapCars;
+window.uf = uf;
+window.setTab = setTab;
+window.compare = compare;
+window.shareResults = shareResults;
+
+uf('a');
+uf('b');
 init();
 <\/script>
 </body>
