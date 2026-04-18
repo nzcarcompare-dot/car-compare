@@ -573,8 +573,7 @@ function updateKm(){
   const v = parseInt(document.getElementById('km').value, 10);
   document.getElementById('km-display').textContent = v.toLocaleString();
   const pct = (v - 5000) / (50000 - 5000) * 100;
-  document.getElementById('km').style.background =
-  'linear-gradient(to right,var(--teal) 0%,var(--teal) ' + pct + '%,var(--bg-4) ' + pct + '%,var(--bg-4) 100%)';
+  document.getElementById('km').style.background = 'linear-gradient(to right,var(--teal) 0%,var(--teal) ' + pct + '%,var(--bg-4) ' + pct + '%,var(--bg-4) 100%)';
 }
 function setMode(car, mode){
   ['browse','plate','manual'].forEach(m => document.getElementById(car+'-'+m).classList.toggle('active', m === mode));
@@ -583,12 +582,12 @@ function setMode(car, mode){
 function renderList(car, q){
   const filtered = q ? vehicles.filter(v => (v.name + v.make + v.model + v.year + v.fuelType).toLowerCase().includes(q.toLowerCase())) : vehicles;
   const fcc = {petrol:'fc-petrol',diesel:'fc-diesel',ev:'fc-ev',hybrid:'fc-hybrid',phev:'fc-phev'};
-  document.getElementById(car+'-list').innerHTML = filtered.slice(0,14).map(v =>
-    `<div class="dropdown-item" onmousedown="selectVehicle('${car}','${v.plate}')">
-      <div class="di-name">${v.name}<span class="fuel-chip ${fcc[v.fuelType] || ''}">${v.fuelType.toUpperCase()}</span></div>
-      <div class="di-meta">${v.bodyType || ''} · ${v.l100 ? v.l100+' L/100km' : v.kwh ? v.kwh+' kWh/100km' : ''} · $${v.price.toLocaleString()}</div>
-    </div>`
-  ).join('') || '<div class="dropdown-item" style="color:var(--tx-2)">No matches — try Manual tab</div>';
+  document.getElementById(car+'-list').innerHTML = filtered.slice(0,14).map(function(v){
+    return '<div class="dropdown-item" onmousedown="selectVehicle(\'' + car + '\',\'' + v.plate + '\')">' +
+      '<div class="di-name">' + v.name + '<span class="fuel-chip ' + (fcc[v.fuelType] || '') + '">' + v.fuelType.toUpperCase() + '</span></div>' +
+      '<div class="di-meta">' + (v.bodyType || '') + ' · ' + (v.l100 ? v.l100 + ' L/100km' : v.kwh ? v.kwh + ' kWh/100km' : '') + ' · $' + v.price.toLocaleString() + '</div>' +
+    '</div>';
+  }).join('') || '<div class="dropdown-item" style="color:var(--tx-2)">No matches — try Manual tab</div>';
 }
 function filterList(car){ renderList(car, document.getElementById(car+'-search').value); openList(car); }
 function openList(car){ document.getElementById(car+'-list').classList.add('open'); }
