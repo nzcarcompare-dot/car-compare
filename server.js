@@ -573,7 +573,8 @@ function updateKm(){
   const v = parseInt(document.getElementById('km').value, 10);
   document.getElementById('km-display').textContent = v.toLocaleString();
   const pct = (v - 5000) / (50000 - 5000) * 100;
-  document.getElementById('km').style.background = `linear-gradient(to right,var(--teal) 0%,var(--teal) ${pct}%,var(--bg-4) ${pct}%,var(--bg-4) 100%)`;
+  document.getElementById('km').style.background =
+  'linear-gradient(to right,var(--teal) 0%,var(--teal) ' + pct + '%,var(--bg-4) ' + pct + '%,var(--bg-4) 100%)';
 }
 function setMode(car, mode){
   ['browse','plate','manual'].forEach(m => document.getElementById(car+'-'+m).classList.toggle('active', m === mode));
