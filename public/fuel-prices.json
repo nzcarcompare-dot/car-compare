@@ -1,0 +1,10 @@
+{
+  "_instructions": "Update these values when NZ fuel prices change. The 'updated' field is shown to users on the website so they know prices are current. Format: YYYY-MM-DD",
+  "updated": "2025-04-25",
+  "petrol": 2.89,
+  "diesel": 2.09,
+  "electricity": 0.31,
+  "ruc_diesel": 76,
+  "ruc_ev": 76,
+  "source": "AA NZ weekly averages / MBIE"
+}
