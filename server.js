@@ -90,7 +90,7 @@ async function fetchCarjam(plate) {
 
   // Use production URL if key doesn't look like a test key,
   // otherwise use test environment
-  const baseUrl = 'https://test.carjam.co.nz';
+  const baseUrl = 'https://carjam.co.nz';
   const url = `${baseUrl}/a/vehicle:abcd?key=${encodeURIComponent(CARJAM_KEY)}&plate=${encodeURIComponent(plate)}`;
 
   const res  = await fetch(url, { headers: { Authorization: CARJAM_BASIC } });
