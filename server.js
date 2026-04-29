@@ -34,6 +34,7 @@ const BODY_STYLE_MAP = {
 };
 
 const VEHICLES = JSON.parse(readFileSync(join(__dirname, 'public', 'vehicles.json'), 'utf8'));
+const BROWSE   = JSON.parse(readFileSync(join(__dirname, 'public', 'browse-vehicles.json'), 'utf8'));
 const PRICES   = JSON.parse(readFileSync(join(__dirname, 'public', 'prices.json'),   'utf8'));
 
 app.use(express.static(join(__dirname, 'public')));
@@ -168,7 +169,11 @@ function mapCarjamResponse(cj, price) {
 }
 
 // ── API routes ────────────────────────────────────────────────────────────────
-app.get('/api/vehicles', (_req, res) => res.json(VEHICLES));
+// Browse list — all 231 unique models for the dropdown
+app.get('/api/vehicles', (_req, res) => res.json(BROWSE));
+
+// Demo vehicles — the 20 curated vehicles used for demo plate lookups
+app.get('/api/demo-vehicles', (_req, res) => res.json(VEHICLES));
 
 app.get('/api/fuel-prices', (_req, res) => {
   try {
@@ -183,8 +188,8 @@ app.get('/api/lookup/:plate', async (req, res) => {
   const plate = req.params.plate.toUpperCase().replace(/\s/g, '');
   if (!/^[A-Z0-9]{1,8}$/.test(plate)) return res.status(400).json({ error: 'Invalid plate format' });
 
-  // Demo vehicles — free, unlimited, no Carjam call
-  const demo = VEHICLES.find(v => v.plate === plate);
+  // Demo vehicles — check curated list first (has full economy data)
+  const demo = VEHICLES.find(v => v.plate === plate) || BROWSE.find(v => v.plate === plate);
   if (demo) return res.json({ ...demo, _demo: true });
 
   // Rate limit real lookups by IP
@@ -214,7 +219,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('\n  NZ Car Compare');
   console.log('  ─────────────────────────────');
   console.log('  Open: http://localhost:' + PORT);
-  console.log('  Vehicles: ' + VEHICLES.length);
+  console.log('  Vehicles: ' + VEHICLES.length + ' demo, ' + BROWSE.length + ' browseable');
   console.log('  Carjam: ' + (CARJAM_KEY ? 'production API enabled' : 'not set — set CARJAM_API_KEY'));
   console.log('  Rate limit: ' + RATE_LIMIT + ' lookups/hour per IP\n');
 });
