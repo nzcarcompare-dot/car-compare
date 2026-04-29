@@ -131,7 +131,7 @@ function selectVehicle(car, plate) {
   const browsedPrice = lookupMarketPrice(v.make || '', v.model || '', String(v.year || ''));
   if (browsedPrice && !v.price) {
     el(car + '-price').value = browsedPrice;
-    const psBrowse = el(car + '-price-source'); if (psBrowse) psBrowse.textContent = 'Price estimate from Trade Me averages — adjust if needed';
+    setPriceSource(car, true);
   } else if (v.price) {
     const psHide = el(car + '-price-source'); if (psHide) psHide.textContent = '';
   }
@@ -185,11 +185,9 @@ async function lookupPlate(car) {
     const lookedUpPrice = v.price || lookupMarketPrice(v.make, v.model, v.year);
     if (lookedUpPrice) {
       el(car + '-price').value = lookedUpPrice;
-      const psSrc = el(car + '-price-source');
-      if (psSrc) psSrc.textContent = v._priceSource ? 'Price estimate: ' + v._priceSource + ' — adjust if needed' : 'Price estimate from Trade Me averages — adjust if needed';
+      setPriceSource(car, true);
     } else {
-      const psEl = el(car + '-price-source');
-      if (psEl) psEl.textContent = 'No price estimate available — enter manually';
+      setPriceSource(car, false);
     }
     el(car + '-fuel').value  = v.fuelType || 'petrol';
     updateFuelUI(car);
@@ -235,6 +233,25 @@ async function loadPrices() {
   } catch (e) {
     console.warn('Could not load prices.json', e);
   }
+}
+
+/* ── Price source helper ────────────────────────────────────────────────────── */
+function setPriceSource(car, found) {
+  const el_ps = el(car + '-price-source');
+  if (!el_ps) return;
+  if (found) {
+    el_ps.textContent = '✓ Estimated from Trade Me averages';
+    el_ps.className = 'price-source ps-found';
+  } else {
+    el_ps.textContent = '⚠ No estimate — enter price manually';
+    el_ps.className = 'price-source ps-missing';
+  }
+}
+function clearPriceSource(car) {
+  const el_ps = el(car + '-price-source');
+  if (!el_ps) return;
+  el_ps.textContent = '';
+  el_ps.className = 'price-source';
 }
 
 /* ── Live fuel prices ───────────────────────────────────────────────────────── */
@@ -387,7 +404,7 @@ function showBanner(car, v) {
 
 function hideBanner(car) {
   el(car + '-banner').classList.remove('show');
-  const psHide = el(car + '-price-source'); if (psHide) psHide.textContent = '';
+  clearPriceSource(car);
   el(car + '-insurance').style.display = 'none';
 }
 

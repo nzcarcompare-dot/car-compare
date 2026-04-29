@@ -466,9 +466,29 @@ main { max-width: 1040px; margin: 0 auto; padding: 0 16px 80px; }
 
 /* Price source note */
 .price-source {
-  font-size: 10px; color: var(--tx-3); margin-top: 4px;
-  font-style: italic;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: none; /* hidden when empty */
+  align-items: center;
+  gap: 5px;
 }
+.price-source:not(:empty) {
+  display: inline-flex;
+}
+.price-source.ps-found {
+  color: #34d399;
+  background: rgba(6,87,56,0.15);
+  border: 1px solid rgba(52,211,153,0.2);
+}
+.price-source.ps-missing {
+  color: #fbbf24;
+  background: rgba(146,64,14,0.15);
+  border: 1px solid rgba(251,191,36,0.2);
+}
+
 
 /* ── Footer ─────────────────────────────────────────────────────────────────── */
 footer {
@@ -511,3 +531,12 @@ footer {
   transition: color 0.15s;
 }
 .footer-link:hover { color: var(--teal); }
+
+/* ── Safety test note in banner ─────────────────────────────────────────────── */
+.banner-safety-note {
+  font-size: 10px;
+  color: var(--tx-2);
+  margin-top: 6px;
+  font-style: italic;
+  line-height: 1.5;
+}
