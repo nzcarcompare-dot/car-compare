@@ -67,7 +67,7 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
     // Clear banner and status when switching tabs
     hideBanner(car);
     setStatus(car, '');
-    el(car + '-carjam').classList.add('hidden');
+    const cjl = el(car + '-carjam'); if (cjl) cjl.classList.add('hidden');
   });
 });
 
@@ -131,9 +131,9 @@ function selectVehicle(car, plate) {
   const browsedPrice = lookupMarketPrice(v.make || '', v.model || '', String(v.year || ''));
   if (browsedPrice && !v.price) {
     el(car + '-price').value = browsedPrice;
-    el(car + '-price-source').textContent = 'Price estimate from Trade Me averages — adjust if needed';
+    const psBrowse = el(car + '-price-source'); if (psBrowse) psBrowse.textContent = 'Price estimate from Trade Me averages — adjust if needed';
   } else if (v.price) {
-    el(car + '-price-source').textContent = '';
+    const psHide = el(car + '-price-source'); if (psHide) psHide.textContent = '';
   }
   buildInsuranceLinks(car, v.make || '', v.model || '', String(v.year || ''));
   showBanner(car, v);
@@ -150,7 +150,7 @@ async function lookupPlate(car) {
   btn.textContent = '…';
   setStatus(car, 'Looking up ' + plate + '…', 's-load');
   hideBanner(car);
-  el(car + '-carjam').classList.add('hidden');
+  const cjl = el(car + '-carjam'); if (cjl) cjl.classList.add('hidden');
 
   try {
     const res = await fetch('/api/lookup/' + encodeURIComponent(plate));
@@ -185,11 +185,11 @@ async function lookupPlate(car) {
     const lookedUpPrice = v.price || lookupMarketPrice(v.make, v.model, v.year);
     if (lookedUpPrice) {
       el(car + '-price').value = lookedUpPrice;
-      el(car + '-price-source').textContent = v._priceSource
-        ? 'Price estimate: ' + v._priceSource + ' — adjust if needed'
-        : 'Price estimate from Trade Me averages — adjust if needed';
+      const psSrc = el(car + '-price-source');
+      if (psSrc) psSrc.textContent = v._priceSource ? 'Price estimate: ' + v._priceSource + ' — adjust if needed' : 'Price estimate from Trade Me averages — adjust if needed';
     } else {
-      el(car + '-price-source').textContent = 'No price estimate available — enter manually';
+      const psEl = el(car + '-price-source');
+      if (psEl) psEl.textContent = 'No price estimate available — enter manually';
     }
     el(car + '-fuel').value  = v.fuelType || 'petrol';
     updateFuelUI(car);
@@ -199,10 +199,12 @@ async function lookupPlate(car) {
     showBanner(car, { ...v, ...state[car] });
     setStatus(car, '✓ Found' + (v._demo ? ' (demo data)' : ''), 's-ok');
 
-    // Show Carjam link
+    // Show Carjam link (only if element exists — it's inside the plate panel)
     const carjamLink = el(car + '-carjam');
-    carjamLink.href = 'https://www.carjam.co.nz/car/?plate=' + encodeURIComponent(plate);
-    carjamLink.classList.remove('hidden');
+    if (carjamLink) {
+      carjamLink.href = 'https://www.carjam.co.nz/car/?plate=' + encodeURIComponent(plate);
+      carjamLink.classList.remove('hidden');
+    }
 
   } catch (e) {
     setStatus(car, '✗ ' + e.message, 's-err');
@@ -288,23 +290,20 @@ function lookupMarketPrice(make, model, year) {
 
 /* ── Insurance links ────────────────────────────────────────────────────────── */
 function buildInsuranceLinks(car, make, model, year) {
-  const q   = encodeURIComponent([year, make, model].filter(Boolean).join(' '));
-  const mq  = encodeURIComponent(make  || '');
-  const moq = encodeURIComponent(model || '');
+  // Safe setter — only update elements that exist in the DOM
+  function safeHref(id, url) {
+    const elem = el(id);
+    if (elem) elem.href = url;
+  }
 
-  // Quashed — NZ insurance comparison
-  el(car + '-ins-quashed').href = 'https://www.quashed.co.nz/';
+  safeHref(car + '-ins-quashed', 'https://www.quashed.co.nz/');
+  // AA, AMI, Tower commented out in HTML until working links confirmed
+  // safeHref(car + '-ins-aa',      'https://www.aainsurance.co.nz/car-insurance/get-a-quote');
+  // safeHref(car + '-ins-ami',     'https://www.ami.co.nz/insurance/car-insurance/');
+  // safeHref(car + '-ins-tower',   'https://www.tower.co.nz/insurance/car-insurance/');
 
-  // AA Insurance — car quote page
-  el(car + '-ins-aa').href = 'https://www.aainsurance.co.nz/car-insurance/get-a-quote';
-
-  // AMI — car quote
-  el(car + '-ins-ami').href = 'https://www.ami.co.nz/insurance/car-insurance/';
-
-  // Tower — car insurance
-  el(car + '-ins-tower').href = 'https://www.tower.co.nz/insurance/car-insurance/';
-
-  el(car + '-insurance').style.display = 'block';
+  const insEl = el(car + '-insurance');
+  if (insEl) insEl.style.display = 'block';
 }
 
 /* ── Banner ────────────────────────────────────────────────────────────────── */
@@ -371,11 +370,14 @@ function showBanner(car, v) {
 
   const make  = (v.make  || '').toLowerCase().replace(/\s+/g, '-');
   const model = (v.model || '').toLowerCase().replace(/\s+/g, '-');
-  el(car + '-trademe').href = make && model
-    ? 'https://www.trademe.co.nz/a/motors/cars/' + make + '/' + model
-    : make
-    ? 'https://www.trademe.co.nz/a/motors/cars/' + make
-    : 'https://www.trademe.co.nz/a/motors/cars';
+  const tmEl = el(car + '-trademe');
+  if (tmEl) {
+    tmEl.href = make && model
+      ? 'https://www.trademe.co.nz/a/motors/cars/' + make + '/' + model
+      : make
+      ? 'https://www.trademe.co.nz/a/motors/cars/' + make
+      : 'https://www.trademe.co.nz/a/motors/cars';
+  }
 
   // Insurance links
   buildInsuranceLinks(car, v.make || '', v.model || '', v.year || '');
@@ -385,7 +387,7 @@ function showBanner(car, v) {
 
 function hideBanner(car) {
   el(car + '-banner').classList.remove('show');
-  el(car + '-price-source').textContent = '';
+  const psHide = el(car + '-price-source'); if (psHide) psHide.textContent = '';
   el(car + '-insurance').style.display = 'none';
 }
 
