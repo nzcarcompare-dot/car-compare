@@ -87,7 +87,7 @@ function renderList(car, query) {
       <div class="di-name">${v.name}<span class="fuel-chip ${chip}">${v.fuelType.toUpperCase()}</span></div>
       <div class="di-meta">${[v.bodyType, economy, '$' + v.price.toLocaleString()].filter(Boolean).join(' · ')}</div>
     </div>`;
-  }).join('') || '<div class="dropdown-item"><div class="di-meta">No matches — try "Enter specs"</div></div>';
+  }).join('') || '<div class="dropdown-item"><div class="di-meta">No matches — try the plate lookup tab</div></div>';
 
   el(car + '-list').innerHTML = html;
 
@@ -141,20 +141,27 @@ function selectVehicle(car, plate) {
 }
 
 /* ── Plate lookup ──────────────────────────────────────────────────────────── */
-async function lookupPlate(car) {
+async function lookupPlate(car, retryCount = 0) {
   const plate = el(car + '-plate-input').value.trim().toUpperCase().replace(/\s/g, '');
   if (!plate) return;
 
   const btn = el(car + '-lbtn');
   btn.disabled = true;
-  btn.textContent = '…';
-  setStatus(car, 'Looking up ' + plate + '…', 's-load');
+  btn.textContent = retryCount > 0 ? 'Retrying…' : '…';
+  setStatus(car, retryCount > 0 ? 'Waking up server, retrying ' + plate + '…' : 'Looking up ' + plate + '…', 's-load');
   hideBanner(car);
   const cjl = el(car + '-carjam'); if (cjl) cjl.classList.add('hidden');
 
   try {
     const res = await fetch('/api/lookup/' + encodeURIComponent(plate));
     const v   = await res.json();
+    // Retry once on server errors (cold start / timeout) — up to 2 retries
+    if (!res.ok && retryCount < 2 && (res.status === 502 || res.status === 503 || res.status === 504)) {
+      btn.disabled = false;
+      btn.textContent = 'Look up';
+      setTimeout(() => lookupPlate(car, retryCount + 1), 2500);
+      return;
+    }
     if (!res.ok) throw new Error(v.error || 'Not found');
 
     Object.assign(state[car], {
@@ -178,14 +185,24 @@ async function lookupPlate(car) {
       origin:       v.origin       || null,
       electricRange:v.electricRange|| null,
       yearlyCo2:    v.yearlyCo2    || null,
+      odometer:     v.odometer     || null,
       notes:        v.notes        || ''
     });
 
-    // Auto-populate price: prefer server-returned price, fall back to local lookup
-    const lookedUpPrice = v.price || lookupMarketPrice(v.make, v.model, v.year);
-    if (lookedUpPrice) {
-      el(car + '-price').value = lookedUpPrice;
-      setPriceSource(car, true);
+    // Auto-populate price: use odometer-adjusted price if available, else base lookup
+    const adjustedPrice = v.adjustedPrice || v.price || lookupMarketPrice(v.make, v.model, v.year);
+    if (adjustedPrice) {
+      el(car + '-price').value = adjustedPrice;
+      const src = el(car + '-price-source');
+      if (src) {
+        if (v.adjustedPrice && v.odometer) {
+          const km = parseInt(v.odometer).toLocaleString();
+          src.textContent = '✓ Estimated & adjusted for ' + km + ' km odometer';
+          src.className = 'price-source ps-found';
+        } else {
+          setPriceSource(car, true);
+        }
+      }
     } else {
       setPriceSource(car, false);
     }
@@ -348,6 +365,9 @@ function showBanner(car, v) {
 
   // Submodel as subtitle if available
   el(car + '-vname').textContent = v.name || 'Unknown';
+  const odoDisplay = v.odometer && parseInt(v.odometer) > 0
+    ? parseInt(v.odometer).toLocaleString() + ' km on clock'
+    : null;
   el(car + '-vmeta').textContent = [
     v.submodel || '',
     v.bodyType ? v.bodyType : '',
@@ -355,6 +375,7 @@ function showBanner(car, v) {
     v.cc       ? v.cc + 'cc' : '',
     v.power    ? v.power : '',
     v.trans    ? v.trans : '',
+    odoDisplay || '',
     v.owners   ? v.owners + ' prev. owners' : '',
     v.origin   ? 'Made in ' + v.origin : ''
   ].filter(Boolean).join(' · ');

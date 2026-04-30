@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact — NZ Car Compare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .legal-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
+    .legal-back { display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--tx-2);text-decoration:none;margin-bottom:32px;transition:color .15s; }
+    .legal-back:hover { color:var(--teal); }
+    .legal-title { font-family:'DM Serif Display',serif;font-size:36px;color:var(--tx-1);margin-bottom:8px; }
+    .legal-date { font-size:13px;color:var(--tx-2);margin-bottom:40px;padding-bottom:24px;border-bottom:1px solid var(--border); }
+    .legal-body h2 { font-size:17px;font-weight:700;color:var(--tx-1);margin:32px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border); }
+    .legal-body p { font-size:14px;color:var(--tx-2);line-height:1.8;margin-bottom:14px; }
+    .legal-body ul { font-size:14px;color:var(--tx-2);line-height:1.8;margin:0 0 14px 20px; }
+    .legal-body ul li { margin-bottom:6px; }
+    .legal-body a { color:var(--teal);text-decoration:none; }
+    .legal-body a:hover { text-decoration:underline; }
+    .highlight-box { background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin:20px 0; }
+    .highlight-box p { margin-bottom:0;color:var(--tx-1); }
+    .warning-box { background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:16px 20px;margin:20px 0; }
+    .warning-box p { margin-bottom:0;color:var(--tx-1); }
+    .data-table { width:100%;border-collapse:collapse;font-size:13px;margin:12px 0 20px; }
+    .data-table th { text-align:left;padding:8px 12px;background:var(--bg-3);border:1px solid var(--border);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tx-2); }
+    .data-table td { padding:9px 12px;border:1px solid var(--border);color:var(--tx-2);vertical-align:top; }
+    .data-table tr:nth-child(even) td { background:var(--bg-3); }
+    .contact-card { background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:16px;display:flex;align-items:flex-start;gap:14px; }
+    .contact-icon { font-size:24px;flex-shrink:0;margin-top:2px; }
+    .contact-label { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx-2);margin-bottom:5px; }
+    .contact-value { font-size:15px;font-weight:600;color:var(--tx-1);margin-bottom:4px; }
+    .contact-desc { font-size:13px;color:var(--tx-2);line-height:1.5; }
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-X23FLKCVWG"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-X23FLKCVWG');</script>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <div class="logo-mark" aria-hidden="true">
+        <svg width="52" height="28" viewBox="0 0 52 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(18,3)"><rect x="2" y="7" width="28" height="12" rx="3" fill="#0ecfb0" opacity=".55"/><path d="M6 7 L9 2 L23 2 L26 7 Z" fill="#0ecfb0" opacity=".55"/><circle cx="7" cy="19" r="3.2" fill="#0a3d33" opacity=".7"/><circle cx="7" cy="19" r="1.6" fill="#0ecfb0" opacity=".5"/><circle cx="23" cy="19" r="3.2" fill="#0a3d33" opacity=".7"/><circle cx="23" cy="19" r="1.6" fill="#0ecfb0" opacity=".5"/></g>
+          <g transform="translate(0,5)"><rect x="2" y="7" width="28" height="12" rx="3" fill="#3b82f6"/><path d="M6 7 L9 2 L23 2 L26 7 Z" fill="#60a5fa"/><rect x="9.5" y="2.8" width="12" height="4" rx="1" fill="#bfdbfe" opacity=".6"/><circle cx="7" cy="19" r="3.2" fill="#1e3a5f"/><circle cx="7" cy="19" r="1.6" fill="#93c5fd"/><circle cx="23" cy="19" r="3.2" fill="#1e3a5f"/><circle cx="23" cy="19" r="1.6" fill="#93c5fd"/><rect x="2" y="10" width="3" height="2" rx="1" fill="#fde68a"/><rect x="27" y="10" width="2" height="2" rx="1" fill="#f87171" opacity=".8"/></g>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">NZ Car <span>Compare</span></div>
+        <div class="logo-sub">True cost of car ownership</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="theme-label" id="theme-label">Dark</span>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
+    </div>
+  </header>
+
+  <div class="legal-wrap">
+    <a href="/" class="legal-back">← Back to NZ Car Compare</a>
+    <h1 class="legal-title">Contact</h1>
+    <div class="legal-date">We'd love to hear from you — feedback, ideas, or questions welcome.</div>
+
+    <div class="legal-body">
+
+      <div class="contact-card">
+        <div class="contact-icon">💬</div>
+        <div>
+          <div class="contact-label">General enquiries</div>
+          <div class="contact-value"><a href="mailto:info@nzcarcompare.co.nz">info@nzcarcompare.co.nz</a></div>
+          <div class="contact-desc">Questions about the site, how it works, or anything else.</div>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-icon">🙋</div>
+        <div>
+          <div class="contact-label">Feedback & suggestions</div>
+          <div class="contact-value"><a href="mailto:feedback@nzcarcompare.co.nz">feedback@nzcarcompare.co.nz</a></div>
+          <div class="contact-desc">Spotted something wrong? Have an idea to improve the site? We read every message and genuinely act on good feedback.</div>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-icon">🔒</div>
+        <div>
+          <div class="contact-label">Privacy requests</div>
+          <div class="contact-value"><a href="mailto:privacy@nzcarcompare.co.nz">privacy@nzcarcompare.co.nz</a></div>
+          <div class="contact-desc">Privacy Act requests, data questions, or anything related to how we handle your information.</div>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-icon">⚖️</div>
+        <div>
+          <div class="contact-label">Legal</div>
+          <div class="contact-value"><a href="mailto:legal@nzcarcompare.co.nz">legal@nzcarcompare.co.nz</a></div>
+          <div class="contact-desc">Terms of use questions, copyright, or formal legal correspondence.</div>
+        </div>
+      </div>
+
+      <h2>Response times</h2>
+      <p>NZ Car Compare is operated as a small independent project. We aim to respond to all emails within 2–3 business days. For urgent matters please include "URGENT" in the subject line.</p>
+
+      <h2>Reporting a problem</h2>
+      <p>If a vehicle lookup is returning incorrect information, please email <a href="mailto:feedback@nzcarcompare.co.nz">feedback@nzcarcompare.co.nz</a> with the plate number and what you believe is incorrect. Vehicle data is sourced from the Carjam API and the NZ Transport Agency register — if the underlying data is wrong we'll investigate and flag it appropriately.</p>
+      <p>If you find a bug or the site is behaving unexpectedly, a description of what you were trying to do and what happened instead is very helpful.</p>
+
+      <h2>Vehicle data corrections</h2>
+      <p>Fuel economy figures, CO₂ ratings, and safety ratings are sourced from Carjam, EECA, and the NZTA register. If you believe a figure is wrong, the most effective path is to contact <a href="https://www.carjam.co.nz" target="_blank" rel="noopener">Carjam</a> or <a href="https://rightcar.govt.nz" target="_blank" rel="noopener">RightCar</a> directly, as they are the data custodians. We will reflect any corrections they make automatically.</p>
+
+      <h2>Business enquiries</h2>
+      <p>For partnership, advertising, or affiliate enquiries, please email <a href="mailto:info@nzcarcompare.co.nz">info@nzcarcompare.co.nz</a> with a brief description of your proposal.</p>
+
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>NZ Car Compare</strong>
+        <span>Cost estimates are indicative only — always verify before making purchasing decisions.</span>
+      </div>
+      <div class="footer-links">
+        <a href="/privacy.html" class="footer-link">Privacy Policy</a>
+        <a href="/terms.html" class="footer-link">Terms of Use</a>
+        <a href="/contact.html" class="footer-link">Contact</a>
+        <a href="https://rightcar.govt.nz" target="_blank" rel="noopener" class="footer-link">Economy data: RightCar</a>
+        <a href="https://www.nzta.govt.nz" target="_blank" rel="noopener" class="footer-link">RUC: NZTA</a>
+      </div>
+    </div>
+  </footer>
+  <script>
+    const toggle=document.getElementById('theme-toggle'),label=document.getElementById('theme-label'),html=document.documentElement,saved=localStorage.getItem('theme');
+    if(saved){{html.dataset.theme=saved;label.textContent=saved==='dark'?'Dark':'Light';}}
+    toggle.addEventListener('click',()=>{{const dark=html.dataset.theme==='dark';html.dataset.theme=dark?'light':'dark';label.textContent=dark?'Light':'Dark';localStorage.setItem('theme',dark?'light':'dark');}});
+  </script>
+</body>
+</html>
