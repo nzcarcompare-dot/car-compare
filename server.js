@@ -85,6 +85,29 @@ function lookupPrice(make, model, year) {
   return null;
 }
 
+// ── Odometer-adjusted price ───────────────────────────────────────────────────
+// Adjusts base price up or down based on actual km vs expected km for vehicle age.
+// NZ average: ~14,000 km/year. Rate: ~$0.06/km deviation.
+// Cap: ±25% of base price.
+function adjustPriceForOdometer(basePrice, year, odometerStr) {
+  if (!basePrice || !year || !odometerStr) return basePrice;
+  const actualKm  = parseInt(odometerStr);
+  if (isNaN(actualKm) || actualKm <= 0) return basePrice;
+
+  const currentYear  = new Date().getFullYear();
+  const vehicleAge   = Math.max(1, currentYear - parseInt(year));
+  const expectedKm   = vehicleAge * 14000;    // NZ average annual km
+  const deviationKm  = actualKm - expectedKm; // positive = high km, negative = low km
+  const ratePerKm    = 0.065;                 // $0.065 per km deviation
+  const adjustment   = Math.round(-deviationKm * ratePerKm);
+  const cap          = Math.round(basePrice * 0.25);
+  const clampedAdj   = Math.max(-cap, Math.min(cap, adjustment));
+  const adjusted     = basePrice + clampedAdj;
+
+  // Round to nearest $500 for realism
+  return Math.max(500, Math.round(adjusted / 500) * 500);
+}
+
 // ── Carjam lookup ─────────────────────────────────────────────────────────────
 async function fetchCarjam(plate) {
   const hit = cache.get('cj:' + plate);
@@ -162,9 +185,10 @@ function mapCarjamResponse(cj, price) {
     safetyTest:   se.driver_safety_test || null,
     electricRange:se.electric_range && se.electric_range > 0 ? se.electric_range : null,
     yearlyCo2:    se.yearly_co2 || null,
-    // Market price
+    // Market price — adjusted for actual odometer reading
     price:        price || null,
-    _priceSource: price ? 'Trade Me average' : null,
+    adjustedPrice:price ? adjustPriceForOdometer(price, cj.year_of_manufacture, cj.latest_odometer_reading) : null,
+    _priceSource: price ? 'Trade Me average (odometer adjusted)' : null,
   };
 }
 
