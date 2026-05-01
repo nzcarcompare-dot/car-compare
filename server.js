@@ -33,9 +33,22 @@ const BODY_STYLE_MAP = {
   'RV': 'Recreational',  'MC': 'Motorcycle',
 };
 
-const VEHICLES = JSON.parse(readFileSync(join(__dirname, 'public', 'vehicles.json'), 'utf8'));
-const BROWSE   = JSON.parse(readFileSync(join(__dirname, 'public', 'browse-vehicles.json'), 'utf8'));
-const PRICES   = JSON.parse(readFileSync(join(__dirname, 'public', 'prices.json'),   'utf8'));
+const VDB      = JSON.parse(readFileSync(join(__dirname, 'public', 'vehicles-db.json'), 'utf8'));
+// Build price lookup index: "make|model" -> array of {yearFrom, yearTo, price}
+const PRICE_IDX = {};
+for (const v of VDB) {
+  const key = v.make.toLowerCase() + '|' + v.model.toLowerCase();
+  if (!PRICE_IDX[key]) PRICE_IDX[key] = [];
+  PRICE_IDX[key].push({ yearFrom: v.yearFrom, yearTo: v.yearTo, price: v.price });
+}
+// Demo plates for lookup without hitting Carjam — use first entry per model that has economy data
+const DEMO_PLATES = {};
+for (const v of VDB) {
+  if (v.l100 || v.kwh) {
+    const key = v.make.toLowerCase() + '|' + v.model.toLowerCase();
+    if (!DEMO_PLATES[key]) DEMO_PLATES[key] = v;
+  }
+}
 
 app.use(express.static(join(__dirname, 'public')));
 
@@ -69,40 +82,44 @@ function lookupPrice(make, model, year) {
   const makeKey  = make.toLowerCase().trim();
   const modelKey = model.toLowerCase().trim();
   const yearNum  = parseInt(year);
-  const makeData = PRICES[makeKey];
-  if (!makeData) return null;
-  let modelData = makeData[modelKey];
-  if (!modelData) {
-    const key = Object.keys(makeData).find(k => modelKey.includes(k) || k.includes(modelKey));
-    modelData = key ? makeData[key] : null;
+
+  // Try exact match first, then partial
+  let entries = PRICE_IDX[makeKey + '|' + modelKey];
+  if (!entries) {
+    const key = Object.keys(PRICE_IDX).find(k => {
+      const [m, mo] = k.split('|');
+      return m === makeKey && (modelKey.includes(mo) || mo.includes(modelKey));
+    });
+    entries = key ? PRICE_IDX[key] : null;
   }
-  if (!modelData) return null;
-  for (const [range, price] of Object.entries(modelData)) {
-    if (range === '_note') continue;
-    const [from, to] = range.split('-').map(Number);
-    if (yearNum >= from && yearNum <= to) return price;
-  }
-  return null;
+  if (!entries) return null;
+
+  const match = entries.find(e => yearNum >= e.yearFrom && yearNum <= e.yearTo);
+  return match ? match.price : null;
 }
 
 // ── Odometer-adjusted price ───────────────────────────────────────────────────
-// Adjusts base price up or down based on actual km vs expected km for vehicle age.
-// NZ average: ~14,000 km/year. Rate: ~$0.06/km deviation.
-// Cap: ±25% of base price.
+// Base prices from Trade Me averages run ~8% above typical sale prices.
+// We discount the base, then apply downward-only km adjustment.
+// Low-km cars: no premium (base price is already optimistic).
+// High-km cars: $0.10/km over expected, capped at -35%.
 function adjustPriceForOdometer(basePrice, year, odometerStr) {
   if (!basePrice || !year || !odometerStr) return basePrice;
-  const actualKm  = parseInt(odometerStr);
+  const actualKm = parseInt(odometerStr);
   if (isNaN(actualKm) || actualKm <= 0) return basePrice;
 
+  // Step 1: discount base price to reflect sale vs asking price gap
+  const salePrice = Math.round(basePrice * 0.92);
+
+  // Step 2: downward-only km adjustment
   const currentYear  = new Date().getFullYear();
   const vehicleAge   = Math.max(1, currentYear - parseInt(year));
-  const expectedKm   = vehicleAge * 14000;    // NZ average annual km
-  const deviationKm  = actualKm - expectedKm; // positive = high km, negative = low km
-  const ratePerKm    = 0.065;                 // $0.065 per km deviation
-  const adjustment   = Math.round(-deviationKm * ratePerKm);
-  const cap          = Math.round(basePrice * 0.25);
-  const clampedAdj   = Math.max(-cap, Math.min(cap, adjustment));
-  const adjusted     = basePrice + clampedAdj;
+  const expectedKm   = vehicleAge * 14000;
+  const excessKm     = Math.max(0, actualKm - expectedKm); // only penalise over-mileage
+  const ratePerKm    = 0.10;                               // $0.10 per excess km
+  const maxDiscount  = Math.round(salePrice * 0.35);       // cap at 35% off
+  const kmDiscount   = Math.min(maxDiscount, Math.round(excessKm * ratePerKm));
+  const adjusted     = salePrice - kmDiscount;
 
   // Round to nearest $500 for realism
   return Math.max(500, Math.round(adjusted / 500) * 500);
@@ -193,11 +210,8 @@ function mapCarjamResponse(cj, price) {
 }
 
 // ── API routes ────────────────────────────────────────────────────────────────
-// Browse list — all 231 unique models for the dropdown
-app.get('/api/vehicles', (_req, res) => res.json(BROWSE));
-
-// Demo vehicles — the 20 curated vehicles used for demo plate lookups
-app.get('/api/demo-vehicles', (_req, res) => res.json(VEHICLES));
+// Vehicle database — full list for browse dropdown
+app.get('/api/vehicles', (_req, res) => res.json(VDB));
 
 app.get('/api/fuel-prices', (_req, res) => {
   try {
@@ -212,8 +226,8 @@ app.get('/api/lookup/:plate', async (req, res) => {
   const plate = req.params.plate.toUpperCase().replace(/\s/g, '');
   if (!/^[A-Z0-9]{1,8}$/.test(plate)) return res.status(400).json({ error: 'Invalid plate format' });
 
-  // Demo vehicles — check curated list first (has full economy data)
-  const demo = VEHICLES.find(v => v.plate === plate) || BROWSE.find(v => v.plate === plate);
+  // No demo plates in new unified DB — all real lookups go to Carjam
+  const demo = null;
   if (demo) return res.json({ ...demo, _demo: true });
 
   // Rate limit real lookups by IP
@@ -236,14 +250,14 @@ app.get('/api/lookup/:plate', async (req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, vehicles: VEHICLES.length, carjam: !!CARJAM_KEY, rateLimitIPs: rateLimitMap.size });
+  res.json({ ok: true, vehicles: VDB.length, carjam: !!CARJAM_KEY, rateLimitIPs: rateLimitMap.size });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log('\n  NZ Car Compare');
   console.log('  ─────────────────────────────');
   console.log('  Open: http://localhost:' + PORT);
-  console.log('  Vehicles: ' + VEHICLES.length + ' demo, ' + BROWSE.length + ' browseable');
+  console.log('  Vehicles DB: ' + VDB.length + ' entries');
   console.log('  Carjam: ' + (CARJAM_KEY ? 'production API enabled' : 'not set — set CARJAM_API_KEY'));
   console.log('  Rate limit: ' + RATE_LIMIT + ' lookups/hour per IP\n');
 });
