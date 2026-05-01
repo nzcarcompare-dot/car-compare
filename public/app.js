@@ -76,23 +76,36 @@ const fuelChipClass = { petrol: 'fc-petrol', diesel: 'fc-diesel', ev: 'fc-ev', h
 
 function renderList(car, query) {
   const q = query.toLowerCase().trim();
-  const filtered = q
-    ? vehicles.filter(v => (v.name + v.make + v.model + String(v.year) + v.fuelType).toLowerCase().includes(q))
+
+  // Filter and deduplicate — show most recent entry per make+model+fuelType
+  let filtered = q
+    ? vehicles.filter(v => (v.make + ' ' + v.model + ' ' + v.fuelType + ' ' + v.yearTo).toLowerCase().includes(q))
     : vehicles;
 
-  const html = filtered.slice(0, 14).map(v => {
+  // Deduplicate: keep most recent year entry per make+model+fuelType combo
+  const seen = new Map();
+  for (const v of filtered) {
+    const key = v.make + '|' + v.model + '|' + v.fuelType;
+    if (!seen.has(key) || v.yearTo > seen.get(key).yearTo) seen.set(key, v);
+  }
+  const deduped = Array.from(seen.values())
+    .sort((a, b) => a.make.localeCompare(b.make) || a.model.localeCompare(b.model));
+
+  const html = deduped.slice(0, 20).map(v => {
     const chip    = fuelChipClass[v.fuelType] || '';
     const economy = v.l100 ? v.l100 + ' L/100km' : v.kwh ? v.kwh + ' kWh/100km' : '';
-    return `<div class="dropdown-item" data-car="${car}" data-plate="${v.plate}">
-      <div class="di-name">${v.name}<span class="fuel-chip ${chip}">${v.fuelType.toUpperCase()}</span></div>
-      <div class="di-meta">${[v.bodyType, economy, '$' + v.price.toLocaleString()].filter(Boolean).join(' · ')}</div>
+    const yr      = v.yearFrom === v.yearTo ? v.yearTo : v.yearFrom + '–' + v.yearTo;
+    const priceStr = v.price ? '$' + Math.round(v.price * 0.92).toLocaleString() + ' est.' : '';
+    return `<div class="dropdown-item" data-car="${car}" data-id="${encodeURIComponent(v.make+'|'+v.model+'|'+v.fuelType+'|'+v.yearTo)}">
+      <div class="di-name">${v.make} ${v.model}<span class="fuel-chip ${chip}">${v.fuelType.toUpperCase()}</span></div>
+      <div class="di-meta">${[v.bodyType, yr, economy, priceStr].filter(Boolean).join(' · ')}</div>
     </div>`;
   }).join('') || '<div class="dropdown-item"><div class="di-meta">No matches — try the plate lookup tab</div></div>';
 
   el(car + '-list').innerHTML = html;
 
-  el(car + '-list').querySelectorAll('.dropdown-item[data-plate]').forEach(item => {
-    item.addEventListener('mousedown', () => selectVehicle(car, item.dataset.plate));
+  el(car + '-list').querySelectorAll('.dropdown-item[data-id]').forEach(item => {
+    item.addEventListener('mousedown', () => selectVehicleById(car, item.dataset.id));
   });
 }
 
@@ -101,7 +114,7 @@ function closeList(car) { el(car + '-list').classList.remove('open'); }
 
 ['a', 'b'].forEach(car => {
   el(car + '-search').addEventListener('input',  () => { renderList(car, el(car + '-search').value); openList(car); });
-  el(car + '-search').addEventListener('focus',  () => openList(car));
+  el(car + '-search').addEventListener('focus',  () => { renderList(car, el(car + '-search').value); openList(car); });
   el(car + '-search').addEventListener('blur',   () => setTimeout(() => closeList(car), 150));
 });
 
