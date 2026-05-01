@@ -118,21 +118,49 @@ function closeList(car) { el(car + '-list').classList.remove('open'); }
   el(car + '-search').addEventListener('blur',   () => setTimeout(() => closeList(car), 150));
 });
 
-function selectVehicle(car, plate) {
-  const v = vehicles.find(x => x.plate === plate);
-  if (!v) return;
+function selectVehicleById(car, encodedId) {
+  const [make, model, fuelType, yearStr] = decodeURIComponent(encodedId).split('|');
+  const year = parseInt(yearStr);
+
+  // Find best matching entry in the vehicles array
+  const matches = vehicles.filter(v =>
+    v.make === make && v.model === model && v.fuelType === fuelType
+  );
+  if (!matches.length) return;
+
+  // Prefer entry whose year range covers the selected year
+  const v = matches.find(m => year >= m.yearFrom && year <= m.yearTo)
+         || matches.sort((a, b) => b.yearTo - a.yearTo)[0];
+
+  const yr = v.yearFrom === v.yearTo ? String(v.yearTo) : v.yearFrom + '–' + v.yearTo;
+  const displayName = v.make + ' ' + v.model + ' (' + yr + ')';
 
   Object.assign(state[car], {
-    name: v.name, make: v.make, model: v.model, year: v.year,
-    fuelType: v.fuelType, co2: v.co2 || 0, stars: v.stars,
-    safety: v.safety, seats: v.seats, bodyType: v.bodyType,
-    trans: v.trans, cc: v.cc, notes: v.notes
+    name:     displayName,
+    make:     v.make,
+    model:    v.model,
+    year:     v.yearTo,
+    fuelType: v.fuelType,
+    co2:      v.co2      || 0,
+    stars:    v.stars    || null,
+    safety:   v.safety   || null,
+    seats:    v.seats    || null,
+    bodyType: v.bodyType || '',
+    trans:    v.trans    || '',
+    cc:       v.cc       || null,
+    notes:    v.notes    || '',
+    odometer: null,
   });
 
-  el(car + '-search').value = v.name;
+  el(car + '-search').value = v.make + ' ' + v.model;
   closeList(car);
-  el(car + '-price').value = v.price;
-  el(car + '-fuel').value  = v.fuelType;
+
+  // Apply 8% discount to convert asking price → estimated sale price
+  const salePrice = Math.round((v.price * 0.92) / 500) * 500;
+  el(car + '-price').value = salePrice;
+  setPriceSource(car, true);
+
+  el(car + '-fuel').value = v.fuelType;
   updateFuelUI(car);
   if (v.l100) el(car + '-l100').value = v.l100;
   if (v.kwh)  el(car + '-kwh').value  = v.kwh;
@@ -140,18 +168,12 @@ function selectVehicle(car, plate) {
     if (v.l100) el(car + '-pl100').value = v.l100;
     if (v.kwh)  el(car + '-pkwh').value  = v.kwh;
   }
-  // Try to show a market price estimate for browsed vehicles
-  const browsedPrice = lookupMarketPrice(v.make || '', v.model || '', String(v.year || ''));
-  if (browsedPrice && !v.price) {
-    el(car + '-price').value = browsedPrice;
-    setPriceSource(car, true);
-  } else if (v.price) {
-    const psHide = el(car + '-price-source'); if (psHide) psHide.textContent = '';
-  }
-  buildInsuranceLinks(car, v.make || '', v.model || '', String(v.year || ''));
-  showBanner(car, v);
+
+  buildInsuranceLinks(car, v.make, v.model, String(v.yearTo));
+  showBanner(car, { ...state[car], ...v });
   setStatus(car, '');
 }
+
 
 /* ── Plate lookup ──────────────────────────────────────────────────────────── */
 async function lookupPlate(car, retryCount = 0) {
