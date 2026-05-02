@@ -38,13 +38,13 @@ const BODY_STYLE_MAP = {
 const FLEET_IDX  = JSON.parse(readFileSync(join(__dirname, 'public', 'fleet-idx.json'),   'utf8'));
 const FLEET_MAKES= JSON.parse(readFileSync(join(__dirname, 'public', 'fleet-makes.json'), 'utf8'));
 
-// Price lookup from vehicles-db for price estimates
-const VDB        = JSON.parse(readFileSync(join(__dirname, 'public', 'vehicles-db.json'), 'utf8'));
+// Price lookup — built from fleet-db.json, indexed as "make|model" -> [{year, price}]
+const FLEET_DB   = JSON.parse(readFileSync(join(__dirname, 'public', 'fleet-db.json'), 'utf8'));
 const PRICE_IDX  = {};
-for (const v of VDB) {
+for (const v of FLEET_DB) {
   const key = v.make.toLowerCase() + '|' + v.model.toLowerCase();
   if (!PRICE_IDX[key]) PRICE_IDX[key] = [];
-  PRICE_IDX[key].push({ yearFrom: v.yearFrom, yearTo: v.yearTo, price: v.price });
+  PRICE_IDX[key].push({ year: v.year, price: v.price });
 }
 
 app.use(express.static(join(__dirname, 'public')));
@@ -80,7 +80,7 @@ function lookupPrice(make, model, year) {
   const modelKey = model.toLowerCase().trim();
   const yearNum  = parseInt(year);
 
-  // Try exact match first, then partial
+  // Try exact match first, then partial model name match
   let entries = PRICE_IDX[makeKey + '|' + modelKey];
   if (!entries) {
     const key = Object.keys(PRICE_IDX).find(k => {
@@ -89,10 +89,15 @@ function lookupPrice(make, model, year) {
     });
     entries = key ? PRICE_IDX[key] : null;
   }
-  if (!entries) return null;
+  if (!entries || !entries.length) return null;
 
-  const match = entries.find(e => yearNum >= e.yearFrom && yearNum <= e.yearTo);
-  return match ? match.price : null;
+  // Find exact year match first
+  const exact = entries.find(e => e.year === yearNum);
+  if (exact) return exact.price;
+
+  // Fall back to closest year
+  const sorted = entries.slice().sort((a, b) => Math.abs(a.year - yearNum) - Math.abs(b.year - yearNum));
+  return sorted[0]?.price || null;
 }
 
 // ── Odometer-adjusted price ───────────────────────────────────────────────────
@@ -230,7 +235,7 @@ app.get('/api/fleet/variants', (req, res) => {
 });
 
 // Legacy: keep /api/vehicles working for any code still using it
-app.get('/api/vehicles', (_req, res) => res.json(VDB));
+app.get('/api/vehicles', (_req, res) => res.json(FLEET_DB));
 
 app.get('/api/fuel-prices', (_req, res) => {
   try {
