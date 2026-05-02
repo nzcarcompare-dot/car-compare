@@ -23,21 +23,28 @@ function cascadeShow(car, step) {
 
 function cascadeReset(car) {
   cascadeState[car] = { make: null, model: null, year: null };
-  // Hide all steps except make
   ['model','year','variant'].forEach(s => {
     const e = el(car + '-step-' + s);
     if (e) e.classList.add('hidden');
   });
-  el(car + '-step-make').classList.remove('hidden');
-  el(car + '-make-input').value = '';
-  el(car + '-cascade-reset').classList.add('hidden');
+  const stepMake = el(car + '-step-make');
+  if (stepMake) stepMake.classList.remove('hidden');
+  const makeInput = el(car + '-make-input');
+  if (makeInput) { makeInput.value = ''; makeInput.focus(); }
+  const resetBtn = el(car + '-cascade-reset');
+  if (resetBtn) resetBtn.classList.add('hidden');
+  const makeList = el(car + '-make-list');
+  if (makeList) makeList.classList.remove('open');
   hideBanner(car);
   clearPriceSource(car);
   setStatus(car, '');
 }
 
 function renderCascadeMakes(car, query) {
-  if (!fleetMakes) return;
+  if (!fleetMakes) {
+    loadFleetMakes().then(() => renderCascadeMakes(car, query));
+    return;
+  }
   const q = query.toLowerCase().trim();
   const makes = Object.keys(fleetMakes).sort();
   const filtered = q ? makes.filter(m => m.toLowerCase().includes(q)) : makes;
@@ -217,7 +224,8 @@ function selectCascadeVariant(car, v, make, model, year) {
   setStatus(car, v.fc ? `✓ ${v.fc} L/100km from NZ fleet data` : '✓ Selected', 's-ok');
 }
 
-// Initialise cascade event listeners for a car
+// Initialise cascade event listeners — called once at startup
+// Elements always exist in DOM (even if hidden), so listeners attach fine
 function initCascade(car) {
   const makeInput  = el(car + '-make-input');
   const modelInput = el(car + '-model-input');
@@ -225,19 +233,25 @@ function initCascade(car) {
   const modelList  = el(car + '-model-list');
   const resetBtn   = el(car + '-cascade-reset');
 
-  makeInput.addEventListener('input', () => renderCascadeMakes(car, makeInput.value));
-  makeInput.addEventListener('focus', () => renderCascadeMakes(car, makeInput.value));
-  makeInput.addEventListener('blur',  () => setTimeout(() => makeList.classList.remove('open'), 150));
+  if (!makeInput) { console.warn('initCascade: missing elements for', car); return; }
 
-  modelInput.addEventListener('input', () => renderCascadeModels(car, modelInput.value));
-  modelInput.addEventListener('focus', () => renderCascadeModels(car, modelInput.value));
-  modelInput.addEventListener('blur',  () => setTimeout(() => modelList.classList.remove('open'), 150));
+  makeInput.addEventListener('input',  () => renderCascadeMakes(car, makeInput.value));
+  makeInput.addEventListener('focus',  () => {
+    if (fleetMakes) renderCascadeMakes(car, makeInput.value);
+    else loadFleetMakes().then(() => renderCascadeMakes(car, makeInput.value));
+  });
+  makeInput.addEventListener('blur',   () => setTimeout(() => makeList.classList.remove('open'), 180));
+  makeInput.addEventListener('keydown', e => { if (e.key === 'Escape') makeList.classList.remove('open'); });
+
+  modelInput.addEventListener('input',  () => renderCascadeModels(car, modelInput.value));
+  modelInput.addEventListener('focus',  () => renderCascadeModels(car, modelInput.value));
+  modelInput.addEventListener('blur',   () => setTimeout(() => modelList.classList.remove('open'), 180));
+  modelInput.addEventListener('keydown', e => { if (e.key === 'Escape') modelList.classList.remove('open'); });
 
   resetBtn.addEventListener('click', () => cascadeReset(car));
 }
 
 /* ── State ─────────────────────────────────────────────────────────────────── */
-let vehicles = [];
 let chartInstance = null;
 
 const state = {
@@ -302,115 +316,23 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
     document.querySelectorAll(`#card-${car} .mode-btn`).forEach(b => {
       b.classList.toggle('active', b.dataset.mode === mode);
     });
-    // Clear banner and status when switching tabs
+    // Clear state when switching tabs
     hideBanner(car);
+    clearPriceSource(car);
     setStatus(car, '');
     const cjl = el(car + '-carjam'); if (cjl) cjl.classList.add('hidden');
+    // When switching to browse, reset cascade and focus make input
+    if (mode === 'browse') {
+      cascadeReset(car);
+      // Ensure fleet data is ready
+      if (!fleetMakes) loadFleetMakes().catch(() => {});
+    }
   });
 });
 
-/* ── Browse / search dropdown ──────────────────────────────────────────────── */
+/* ── Fuel chip classes (used by cascade variant cards) ─────────────────────── */
 const fuelChipClass = { petrol: 'fc-petrol', diesel: 'fc-diesel', ev: 'fc-ev', hybrid: 'fc-hybrid', phev: 'fc-phev' };
 
-function renderList(car, query) {
-  const q = query.toLowerCase().trim();
-
-  // Filter and deduplicate — show most recent entry per make+model+fuelType
-  let filtered = q
-    ? vehicles.filter(v => (v.make + ' ' + v.model + ' ' + v.fuelType + ' ' + v.yearTo).toLowerCase().includes(q))
-    : vehicles;
-
-  // Deduplicate: keep most recent year entry per make+model+fuelType combo
-  const seen = new Map();
-  for (const v of filtered) {
-    const key = v.make + '|' + v.model + '|' + v.fuelType;
-    if (!seen.has(key) || v.yearTo > seen.get(key).yearTo) seen.set(key, v);
-  }
-  const deduped = Array.from(seen.values())
-    .sort((a, b) => a.make.localeCompare(b.make) || a.model.localeCompare(b.model));
-
-  const html = deduped.slice(0, 20).map(v => {
-    const chip    = fuelChipClass[v.fuelType] || '';
-    const economy = v.l100 ? v.l100 + ' L/100km' : v.kwh ? v.kwh + ' kWh/100km' : '';
-    const yr      = v.yearFrom === v.yearTo ? v.yearTo : v.yearFrom + '–' + v.yearTo;
-    const priceStr = v.price ? '$' + Math.round(v.price * 0.92).toLocaleString() + ' est.' : '';
-    return `<div class="dropdown-item" data-car="${car}" data-id="${encodeURIComponent(v.make+'|'+v.model+'|'+v.fuelType+'|'+v.yearTo)}">
-      <div class="di-name">${v.make} ${v.model}<span class="fuel-chip ${chip}">${v.fuelType.toUpperCase()}</span></div>
-      <div class="di-meta">${[v.bodyType, yr, economy, priceStr].filter(Boolean).join(' · ')}</div>
-    </div>`;
-  }).join('') || '<div class="dropdown-item"><div class="di-meta">No matches — try the plate lookup tab</div></div>';
-
-  el(car + '-list').innerHTML = html;
-
-  el(car + '-list').querySelectorAll('.dropdown-item[data-id]').forEach(item => {
-    item.addEventListener('mousedown', () => selectVehicleById(car, item.dataset.id));
-  });
-}
-
-function openList(car)  { el(car + '-list').classList.add('open'); }
-function closeList(car) { el(car + '-list').classList.remove('open'); }
-
-['a', 'b'].forEach(car => {
-  el(car + '-search').addEventListener('input',  () => { renderList(car, el(car + '-search').value); openList(car); });
-  el(car + '-search').addEventListener('focus',  () => { renderList(car, el(car + '-search').value); openList(car); });
-  el(car + '-search').addEventListener('blur',   () => setTimeout(() => closeList(car), 150));
-});
-
-function selectVehicleById(car, encodedId) {
-  const [make, model, fuelType, yearStr] = decodeURIComponent(encodedId).split('|');
-  const year = parseInt(yearStr);
-
-  // Find best matching entry in the vehicles array
-  const matches = vehicles.filter(v =>
-    v.make === make && v.model === model && v.fuelType === fuelType
-  );
-  if (!matches.length) return;
-
-  // Prefer entry whose year range covers the selected year
-  const v = matches.find(m => year >= m.yearFrom && year <= m.yearTo)
-         || matches.sort((a, b) => b.yearTo - a.yearTo)[0];
-
-  const yr = v.yearFrom === v.yearTo ? String(v.yearTo) : v.yearFrom + '–' + v.yearTo;
-  const displayName = v.make + ' ' + v.model + ' (' + yr + ')';
-
-  Object.assign(state[car], {
-    name:     displayName,
-    make:     v.make,
-    model:    v.model,
-    year:     v.yearTo,
-    fuelType: v.fuelType,
-    co2:      v.co2      || 0,
-    stars:    v.stars    || null,
-    safety:   v.safety   || null,
-    seats:    v.seats    || null,
-    bodyType: v.bodyType || '',
-    trans:    v.trans    || '',
-    cc:       v.cc       || null,
-    notes:    v.notes    || '',
-    odometer: null,
-  });
-
-  el(car + '-search').value = v.make + ' ' + v.model;
-  closeList(car);
-
-  // Apply 8% discount to convert asking price → estimated sale price
-  const salePrice = Math.round((v.price * 0.92) / 500) * 500;
-  el(car + '-price').value = salePrice;
-  setPriceSource(car, true);
-
-  el(car + '-fuel').value = v.fuelType;
-  updateFuelUI(car);
-  if (v.l100) el(car + '-l100').value = v.l100;
-  if (v.kwh)  el(car + '-kwh').value  = v.kwh;
-  if (v.fuelType === 'phev') {
-    if (v.l100) el(car + '-pl100').value = v.l100;
-    if (v.kwh)  el(car + '-pkwh').value  = v.kwh;
-  }
-
-  buildInsuranceLinks(car, v.make, v.model, String(v.yearTo));
-  showBanner(car, { ...state[car], ...v });
-  setStatus(car, '');
-}
 
 
 /* ── Plate lookup ──────────────────────────────────────────────────────────── */
@@ -732,10 +654,6 @@ el('swap-btn').addEventListener('click', () => {
   });
 
   ['a', 'b'].forEach(car => updateFuelUI(car));
-
-  const sA = el('a-search').value, sB = el('b-search').value;
-  el('a-search').value = sB;
-  el('b-search').value = sA;
 
   if (el('a-banner').classList.contains('show')) showBanner('a', state.a);
   if (el('b-banner').classList.contains('show')) showBanner('b', state.b);
@@ -1061,12 +979,14 @@ async function init() {
   try {
     await loadPrices();
     await loadFuelPrices();
-    await loadFleetMakes();
-    initCascade('a');
-    initCascade('b');
   } catch (e) {
     console.error('Init failed:', e);
   }
+  // Cascade listeners attach immediately; fleet data loads lazily on first use
+  initCascade('a');
+  initCascade('b');
+  // Pre-fetch fleet makes in background so first search is instant
+  loadFleetMakes().catch(() => {});
 
   updateKm();
   restoreFromURL();
