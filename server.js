@@ -33,21 +33,18 @@ const BODY_STYLE_MAP = {
   'RV': 'Recreational',  'MC': 'Motorcycle',
 };
 
-const VDB      = JSON.parse(readFileSync(join(__dirname, 'public', 'vehicles-db.json'), 'utf8'));
-// Build price lookup index: "make|model" -> array of {yearFrom, yearTo, price}
-const PRICE_IDX = {};
+// Fleet index — hierarchical make->model->year->variants
+// Loaded into memory for fast cascade API responses
+const FLEET_IDX  = JSON.parse(readFileSync(join(__dirname, 'public', 'fleet-idx.json'),   'utf8'));
+const FLEET_MAKES= JSON.parse(readFileSync(join(__dirname, 'public', 'fleet-makes.json'), 'utf8'));
+
+// Price lookup from vehicles-db for price estimates
+const VDB        = JSON.parse(readFileSync(join(__dirname, 'public', 'vehicles-db.json'), 'utf8'));
+const PRICE_IDX  = {};
 for (const v of VDB) {
   const key = v.make.toLowerCase() + '|' + v.model.toLowerCase();
   if (!PRICE_IDX[key]) PRICE_IDX[key] = [];
   PRICE_IDX[key].push({ yearFrom: v.yearFrom, yearTo: v.yearTo, price: v.price });
-}
-// Demo plates for lookup without hitting Carjam — use first entry per model that has economy data
-const DEMO_PLATES = {};
-for (const v of VDB) {
-  if (v.l100 || v.kwh) {
-    const key = v.make.toLowerCase() + '|' + v.model.toLowerCase();
-    if (!DEMO_PLATES[key]) DEMO_PLATES[key] = v;
-  }
 }
 
 app.use(express.static(join(__dirname, 'public')));
@@ -210,7 +207,29 @@ function mapCarjamResponse(cj, price) {
 }
 
 // ── API routes ────────────────────────────────────────────────────────────────
-// Vehicle database — full list for browse dropdown
+// Fleet cascade API endpoints
+// Step 1: all makes + their models (lightweight, 26KB)
+app.get('/api/fleet/makes', (_req, res) => res.json(FLEET_MAKES));
+
+// Step 2: years available for a make+model
+app.get('/api/fleet/years', (req, res) => {
+  const { make, model } = req.query;
+  if (!make || !model) return res.status(400).json({ error: 'make and model required' });
+  const modelData = FLEET_IDX[make]?.[model];
+  if (!modelData) return res.json([]);
+  const years = Object.keys(modelData).map(Number).sort((a,b) => b - a);
+  res.json(years);
+});
+
+// Step 3: variants for a make+model+year (fuel, body, transmission options + full data)
+app.get('/api/fleet/variants', (req, res) => {
+  const { make, model, year } = req.query;
+  if (!make || !model || !year) return res.status(400).json({ error: 'make, model, year required' });
+  const variants = FLEET_IDX[make]?.[model]?.[year] || [];
+  res.json(variants);
+});
+
+// Legacy: keep /api/vehicles working for any code still using it
 app.get('/api/vehicles', (_req, res) => res.json(VDB));
 
 app.get('/api/fuel-prices', (_req, res) => {
@@ -250,14 +269,14 @@ app.get('/api/lookup/:plate', async (req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, vehicles: VDB.length, carjam: !!CARJAM_KEY, rateLimitIPs: rateLimitMap.size });
+  res.json({ ok: true, fleetMakes: Object.keys(FLEET_IDX).length, fleetRecords: Object.values(FLEET_IDX).reduce((n,m) => n + Object.values(m).reduce((a,y) => a + Object.values(y).reduce((b,v) => b+v.length,0),0),0), carjam: !!CARJAM_KEY, rateLimitIPs: rateLimitMap.size });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log('\n  NZ Car Compare');
   console.log('  ─────────────────────────────');
   console.log('  Open: http://localhost:' + PORT);
-  console.log('  Vehicles DB: ' + VDB.length + ' entries');
+  console.log('  Fleet: ' + Object.keys(FLEET_IDX).length + ' makes, ' + Object.keys(FLEET_MAKES).reduce((n,m) => n + FLEET_MAKES[m].length, 0) + ' models');
   console.log('  Carjam: ' + (CARJAM_KEY ? 'production API enabled' : 'not set — set CARJAM_API_KEY'));
   console.log('  Rate limit: ' + RATE_LIMIT + ' lookups/hour per IP\n');
 });
