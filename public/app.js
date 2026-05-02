@@ -738,8 +738,7 @@ function compare() {
   state.b.fuelType = el('b-fuel').value;
 
   const nA = state.a.name, nB = state.b.name;
-  el('leg-a').textContent = nA;
-  el('leg-b').textContent = nB;
+  // Labels are now drawn inline on the chart canvas
 
   // Break-even
   const labels = [], dA = [], dB = [];
@@ -773,6 +772,76 @@ function compare() {
   const ttTip = dark ? '#e6edf3' : '#0f172a';
   const bdTip = dark ? '#8b949e' : '#64748b';
 
+  // Inline label plugin — draws car names at the end of each line
+  const inlineLabelPlugin = {
+    id: 'inlineLabels',
+    afterDatasetsDraw(chart) {
+      const ctx    = chart.ctx;
+      const meta0  = chart.getDatasetMeta(0);
+      const meta1  = chart.getDatasetMeta(1);
+      const last0  = meta0.data[meta0.data.length - 1];
+      const last1  = meta1.data[meta1.data.length - 1];
+      if (!last0 || !last1) return;
+
+      const isDark = document.documentElement.dataset.theme === 'dark';
+      const labelBg = isDark ? 'rgba(22,27,34,0.88)' : 'rgba(255,255,255,0.88)';
+
+      [[last0, '#3b82f6', nA], [last1, '#0ecfb0', nB]].forEach(([pt, colour, name], i) => {
+        const x = pt.x;
+        const y = pt.y;
+
+        // Determine vertical offset — push apart if lines are close at the end
+        const gap = last0.y - last1.y;
+        let yOff = i === 0
+          ? (gap > -30 ? -28 : -14)   // Car A label above its line end
+          : (gap < 30  ?  28 :  14);   // Car B label below its line end
+
+        // Dot at line end
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = colour;
+        ctx.fill();
+
+        // Small vertical tick from dot to label
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x, y + yOff * 0.55);
+        ctx.strokeStyle = colour;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 2]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Measure label text
+        const label    = name.length > 22 ? name.slice(0, 20) + '…' : name;
+        const fontSize = 11;
+        ctx.font       = `700 ${fontSize}px DM Sans, sans-serif`;
+        const tw       = ctx.measureText(label).width;
+        const pad      = 6;
+        const lx       = Math.min(x - tw / 2, chart.width - tw - pad * 2 - 4);
+        const ly       = y + yOff;
+
+        // Pill background
+        ctx.beginPath();
+        ctx.roundRect(lx - pad, ly - fontSize / 2 - pad * 0.6, tw + pad * 2, fontSize + pad * 1.2, 4);
+        ctx.fillStyle = labelBg;
+        ctx.fill();
+        ctx.strokeStyle = colour;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // Label text
+        ctx.fillStyle = colour;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, lx, ly);
+
+        ctx.restore();
+      });
+    }
+  };
+
   if (chartInstance) chartInstance.destroy();
   chartInstance = new Chart(el('chart'), {
     type: 'line',
@@ -787,6 +856,7 @@ function compare() {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
+      layout: { padding: { right: 16 } },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -799,7 +869,8 @@ function compare() {
         x: { ticks: { color: tick, font: { size: 11 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }, grid: { color: grid }, border: { display: false } },
         y: { ticks: { callback: v => '$' + (v / 1000).toFixed(0) + 'k', color: tick, font: { size: 11 } }, grid: { color: grid }, border: { display: false } }
       }
-    }
+    },
+    plugins: [inlineLabelPlugin]
   });
 
   // Summary metrics with animation
