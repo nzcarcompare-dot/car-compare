@@ -1,3 +1,241 @@
+/* ── Cascade vehicle selector ───────────────────────────────────────────────── */
+// State per car: tracks what's been selected at each step
+const cascadeState = {
+  a: { make: null, model: null, year: null },
+  b: { make: null, model: null, year: null },
+};
+let fleetMakes = null; // loaded once
+
+async function loadFleetMakes() {
+  if (fleetMakes) return;
+  try {
+    const res = await fetch('/api/fleet/makes');
+    fleetMakes = await res.json();
+  } catch (e) { console.warn('Fleet makes load failed', e); fleetMakes = {}; }
+}
+
+function cascadeShow(car, step) {
+  ['make','model','year','variant'].forEach(s => {
+    const el_s = el(car + '-step-' + s);
+    if (el_s) el_s.classList.toggle('hidden', s !== step && !['make'].includes(s) && step !== s);
+  });
+}
+
+function cascadeReset(car) {
+  cascadeState[car] = { make: null, model: null, year: null };
+  // Hide all steps except make
+  ['model','year','variant'].forEach(s => {
+    const e = el(car + '-step-' + s);
+    if (e) e.classList.add('hidden');
+  });
+  el(car + '-step-make').classList.remove('hidden');
+  el(car + '-make-input').value = '';
+  el(car + '-cascade-reset').classList.add('hidden');
+  hideBanner(car);
+  clearPriceSource(car);
+  setStatus(car, '');
+}
+
+function renderCascadeMakes(car, query) {
+  if (!fleetMakes) return;
+  const q = query.toLowerCase().trim();
+  const makes = Object.keys(fleetMakes).sort();
+  const filtered = q ? makes.filter(m => m.toLowerCase().includes(q)) : makes;
+  const list = el(car + '-make-list');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="cascade-opt"><span style="color:var(--tx-2);font-size:12px">No matches</span></div>';
+  } else {
+    list.innerHTML = filtered.slice(0, 30).map(make => {
+      const count = fleetMakes[make].length;
+      return `<div class="cascade-opt" data-make="${make}">
+        <span>${make}</span>
+        <span class="cascade-opt-sub">${count} model${count>1?'s':''}</span>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.cascade-opt[data-make]').forEach(opt => {
+      opt.addEventListener('mousedown', () => selectCascadeMake(car, opt.dataset.make));
+    });
+  }
+  list.classList.add('open');
+}
+
+function selectCascadeMake(car, make) {
+  cascadeState[car].make = make;
+  el(car + '-make-input').value = make;
+  el(car + '-make-list').classList.remove('open');
+  // Show model step
+  el(car + '-crumb-make').innerHTML =
+    `${make} <button class="cascade-crumb-btn" onclick="cascadeReset('${car}')">change</button>`;
+  el(car + '-step-model').classList.remove('hidden');
+  el(car + '-model-input').value = '';
+  el(car + '-cascade-reset').classList.remove('hidden');
+  renderCascadeModels(car, '');
+  setTimeout(() => el(car + '-model-input').focus(), 50);
+}
+
+function renderCascadeModels(car, query) {
+  const make = cascadeState[car].make;
+  if (!make || !fleetMakes[make]) return;
+  const q = query.toLowerCase().trim();
+  const models = fleetMakes[make].sort();
+  const filtered = q ? models.filter(m => m.toLowerCase().includes(q)) : models;
+  const list = el(car + '-model-list');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="cascade-opt"><span style="color:var(--tx-2);font-size:12px">No matches</span></div>';
+  } else {
+    list.innerHTML = filtered.slice(0, 30).map(model =>
+      `<div class="cascade-opt" data-model="${model}"><span>${model}</span></div>`
+    ).join('');
+    list.querySelectorAll('.cascade-opt[data-model]').forEach(opt => {
+      opt.addEventListener('mousedown', () => selectCascadeModel(car, opt.dataset.model));
+    });
+  }
+  list.classList.add('open');
+}
+
+async function selectCascadeModel(car, model) {
+  cascadeState[car].model = model;
+  el(car + '-model-input').value = model;
+  el(car + '-model-list').classList.remove('open');
+  const make = cascadeState[car].make;
+  el(car + '-crumb-model').innerHTML =
+    `${make} › ${model} <button class="cascade-crumb-btn" onclick="selectCascadeMake('${car}','${make}')">change model</button>`;
+  // Fetch years
+  try {
+    const res = await fetch(`/api/fleet/years?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`);
+    const years = await res.json();
+    const pills = el(car + '-year-pills');
+    pills.innerHTML = years.length
+      ? years.map(y =>
+          `<button class="cascade-pill" data-year="${y}">${y}</button>`
+        ).join('')
+      : '<div class="cascade-empty">No year data available</div>';
+    pills.querySelectorAll('.cascade-pill[data-year]').forEach(p => {
+      p.addEventListener('click', () => selectCascadeYear(car, parseInt(p.dataset.year)));
+    });
+    el(car + '-step-year').classList.remove('hidden');
+  } catch(e) { console.error('Year fetch failed', e); }
+}
+
+async function selectCascadeYear(car, year) {
+  cascadeState[car].year = year;
+  const make  = cascadeState[car].make;
+  const model = cascadeState[car].model;
+  el(car + '-crumb-year').innerHTML =
+    `${make} › ${model} › ${year} <button class="cascade-crumb-btn" onclick="selectCascadeModel('${car}','${model}')">change year</button>`;
+  // Fetch variants
+  try {
+    const res = await fetch(`/api/fleet/variants?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${year}`);
+    const variants = await res.json();
+    const list = el(car + '-variant-list');
+
+    const fuelLabels = { petrol:'Petrol', diesel:'Diesel', hybrid:'Hybrid', ev:'Electric', phev:'PHEV' };
+    const fuelClass  = { petrol:'fc-petrol', diesel:'fc-diesel', hybrid:'fc-hybrid', ev:'fc-ev', phev:'fc-phev' };
+
+    if (!variants.length) {
+      list.innerHTML = '<div class="cascade-empty">No variants found for this year</div>';
+    } else {
+      // If only one variant, auto-select it
+      if (variants.length === 1) {
+        el(car + '-step-variant').classList.remove('hidden');
+        selectCascadeVariant(car, variants[0], make, model, year);
+        return;
+      }
+      list.innerHTML = variants.map((v, i) => {
+        const fuelLbl = fuelLabels[v.f] || v.f;
+        const chip    = fuelClass[v.f]  || '';
+        const meta = [v.b, v.t, v.s ? v.s + ' seats' : null, v.c ? v.c + 'cc' : null]
+          .filter(Boolean).join(' · ');
+        const fcHtml = v.fc
+          ? `<span class="cv-fc">${v.fc}<span class="cv-fc-unit"> L/100km</span></span>`
+          : `<span class="cv-fc" style="font-size:13px;color:var(--tx-3)">—</span>`;
+        return `<div class="cascade-variant" data-idx="${i}">
+          <div class="cv-top">
+            <span class="fuel-chip ${chip}">${fuelLbl.toUpperCase()}</span>
+            ${fcHtml}
+          </div>
+          <div class="cv-meta">${meta || 'Details not available'}</div>
+          ${v.su ? `<div class="cv-sub">${v.su}</div>` : ''}
+        </div>`;
+      }).join('');
+      list.querySelectorAll('.cascade-variant[data-idx]').forEach(card => {
+        card.addEventListener('click', () => {
+          selectCascadeVariant(car, variants[parseInt(card.dataset.idx)], make, model, year);
+        });
+      });
+    }
+    el(car + '-step-variant').classList.remove('hidden');
+  } catch(e) { console.error('Variant fetch failed', e); }
+}
+
+function selectCascadeVariant(car, v, make, model, year) {
+  const fuelMap  = { petrol:'petrol', diesel:'diesel', hybrid:'hybrid', ev:'ev', phev:'phev' };
+  const fuelType = fuelMap[v.f] || 'petrol';
+  const displayName = `${year} ${make} ${model}`;
+
+  Object.assign(state[car], {
+    name:     displayName,
+    make:     make,
+    model:    model,
+    year:     year,
+    fuelType: fuelType,
+    co2:      0,
+    stars:    null,
+    safety:   null,
+    seats:    v.s || null,
+    bodyType: v.b || '',
+    trans:    v.t || '',
+    cc:       v.c || null,
+    kw:       v.k || null,
+    notes:    v.su || '',
+    odometer: null,
+  });
+
+  // Populate fuel economy
+  el(car + '-fuel').value = fuelType;
+  updateFuelUI(car);
+  if (fuelType === 'ev' && v.fc) {
+    el(car + '-kwh').value = v.fc;
+  } else if (fuelType === 'phev' && v.fc) {
+    el(car + '-pl100').value = v.fc;
+  } else if (v.fc) {
+    el(car + '-l100').value = v.fc;
+  }
+
+  // Price estimate from vehicles-db
+  const price = lookupMarketPrice(make, model, String(year));
+  if (price) {
+    const salePrice = Math.round(price * 0.92 / 500) * 500;
+    el(car + '-price').value = salePrice;
+    setPriceSource(car, true);
+  } else {
+    clearPriceSource(car);
+  }
+
+  buildInsuranceLinks(car, make, model, String(year));
+  showBanner(car, { ...state[car], l100: v.fc, power: v.k ? v.k + 'kW' : null });
+  setStatus(car, v.fc ? `✓ ${v.fc} L/100km from NZ fleet data` : '✓ Selected', 's-ok');
+}
+
+// Initialise cascade event listeners for a car
+function initCascade(car) {
+  const makeInput  = el(car + '-make-input');
+  const modelInput = el(car + '-model-input');
+  const makeList   = el(car + '-make-list');
+  const modelList  = el(car + '-model-list');
+  const resetBtn   = el(car + '-cascade-reset');
+
+  makeInput.addEventListener('input', () => renderCascadeMakes(car, makeInput.value));
+  makeInput.addEventListener('focus', () => renderCascadeMakes(car, makeInput.value));
+  makeInput.addEventListener('blur',  () => setTimeout(() => makeList.classList.remove('open'), 150));
+
+  modelInput.addEventListener('input', () => renderCascadeModels(car, modelInput.value));
+  modelInput.addEventListener('focus', () => renderCascadeModels(car, modelInput.value));
+  modelInput.addEventListener('blur',  () => setTimeout(() => modelList.classList.remove('open'), 150));
+
+  resetBtn.addEventListener('click', () => cascadeReset(car));
+}
+
 /* ── State ─────────────────────────────────────────────────────────────────── */
 let vehicles = [];
 let chartInstance = null;
@@ -823,12 +1061,11 @@ async function init() {
   try {
     await loadPrices();
     await loadFuelPrices();
-    const res = await fetch('/api/vehicles');
-    vehicles  = await res.json();
-    renderList('a', '');
-    renderList('b', '');
+    await loadFleetMakes();
+    initCascade('a');
+    initCascade('b');
   } catch (e) {
-    console.error('Failed to load vehicles:', e);
+    console.error('Init failed:', e);
   }
 
   updateKm();

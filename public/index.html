@@ -94,12 +94,31 @@
             </a>
           </div>
 
-          <!-- Pick from list -->
+          <!-- Pick from list — cascade selector -->
           <div class="search-panel" id="a-browse">
-            <div class="search-box">
-              <input class="search-input" id="a-search" placeholder="Search make, model or year…" autocomplete="off">
-              <span class="search-icon">🔍</span>
-              <div class="dropdown-list" id="a-list"></div>
+            <div class="cascade" id="a-cascade">
+              <div class="cascade-step" id="a-step-make">
+                <div class="cascade-search-wrap">
+                  <input class="cascade-input" id="a-make-input" placeholder="Type a make… e.g. Toyota" autocomplete="off">
+                  <div class="cascade-dropdown" id="a-make-list"></div>
+                </div>
+              </div>
+              <div class="cascade-step hidden" id="a-step-model">
+                <div class="cascade-crumb" id="a-crumb-make"></div>
+                <div class="cascade-search-wrap">
+                  <input class="cascade-input" id="a-model-input" placeholder="Type a model… e.g. Corolla" autocomplete="off">
+                  <div class="cascade-dropdown" id="a-model-list"></div>
+                </div>
+              </div>
+              <div class="cascade-step hidden" id="a-step-year">
+                <div class="cascade-crumb" id="a-crumb-model"></div>
+                <div class="cascade-pills" id="a-year-pills"></div>
+              </div>
+              <div class="cascade-step hidden" id="a-step-variant">
+                <div class="cascade-crumb" id="a-crumb-year"></div>
+                <div class="cascade-variants" id="a-variant-list"></div>
+              </div>
+              <button class="cascade-reset hidden" id="a-cascade-reset">↩ Start over</button>
             </div>
           </div>
 
@@ -177,12 +196,31 @@
             </a>
           </div>
 
-          <!-- Pick from list -->
+          <!-- Pick from list — cascade selector -->
           <div class="search-panel" id="b-browse">
-            <div class="search-box">
-              <input class="search-input" id="b-search" placeholder="Search make, model or year…" autocomplete="off">
-              <span class="search-icon">🔍</span>
-              <div class="dropdown-list" id="b-list"></div>
+            <div class="cascade" id="b-cascade">
+              <div class="cascade-step" id="b-step-make">
+                <div class="cascade-search-wrap">
+                  <input class="cascade-input" id="b-make-input" placeholder="Type a make… e.g. Toyota" autocomplete="off">
+                  <div class="cascade-dropdown" id="b-make-list"></div>
+                </div>
+              </div>
+              <div class="cascade-step hidden" id="b-step-model">
+                <div class="cascade-crumb" id="b-crumb-make"></div>
+                <div class="cascade-search-wrap">
+                  <input class="cascade-input" id="b-model-input" placeholder="Type a model… e.g. Corolla" autocomplete="off">
+                  <div class="cascade-dropdown" id="b-model-list"></div>
+                </div>
+              </div>
+              <div class="cascade-step hidden" id="b-step-year">
+                <div class="cascade-crumb" id="b-crumb-model"></div>
+                <div class="cascade-pills" id="b-year-pills"></div>
+              </div>
+              <div class="cascade-step hidden" id="b-step-variant">
+                <div class="cascade-crumb" id="b-crumb-year"></div>
+                <div class="cascade-variants" id="b-variant-list"></div>
+              </div>
+              <button class="cascade-reset hidden" id="b-cascade-reset">↩ Start over</button>
             </div>
           </div>
 
