@@ -180,13 +180,24 @@ function selectCascadeVariant(car, v, make, model, year) {
   const fuelType = fuelMap[v.f] || 'petrol';
   const displayName = `${year} ${make} ${model}`;
 
+  // Calculate CO2 from fuel consumption — standard emission factors (g CO2 per litre)
+  // Petrol: 2.31 kg/L, Diesel: 2.68 kg/L  (source: EECA / drivingtests.co.nz)
+  // Formula: FC (L/100km) × kg_per_litre × 1000 / 100 = g/km
+  function calcCO2(fc, fuel) {
+    if (!fc || fuel === 'ev') return 0;
+    const kgPerL = fuel === 'diesel' ? 2.68 : 2.31; // petrol, hybrid, phev all use petrol rate
+    return Math.round(fc * kgPerL * 10); // = fc/100 * kgPerL * 1000
+  }
+
+  const co2 = calcCO2(v.fc, fuelType);
+
   Object.assign(state[car], {
     name:     displayName,
     make:     make,
     model:    model,
     year:     year,
     fuelType: fuelType,
-    co2:      0,
+    co2:      co2,
     stars:    null,
     safety:   null,
     seats:    v.s || null,
@@ -209,7 +220,7 @@ function selectCascadeVariant(car, v, make, model, year) {
     el(car + '-l100').value = v.fc;
   }
 
-  // Price estimate from vehicles-db
+  // Price estimate
   const price = lookupMarketPrice(make, model, String(year));
   if (price) {
     const salePrice = Math.round(price * 0.92 / 500) * 500;
@@ -219,9 +230,10 @@ function selectCascadeVariant(car, v, make, model, year) {
     clearPriceSource(car);
   }
 
+  const co2Label = co2 > 0 ? ` · ${co2} g/km CO₂ (calculated)` : '';
   buildInsuranceLinks(car, make, model, String(year));
   showBanner(car, { ...state[car], l100: v.fc, power: v.k ? v.k + 'kW' : null });
-  setStatus(car, v.fc ? `✓ ${v.fc} L/100km from NZ fleet data` : '✓ Selected', 's-ok');
+  setStatus(car, v.fc ? `✓ ${v.fc} L/100km${co2Label}` : '✓ Selected', 's-ok');
 }
 
 // Initialise cascade event listeners — called once at startup

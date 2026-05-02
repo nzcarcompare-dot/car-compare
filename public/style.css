@@ -633,3 +633,11 @@ footer {
 }
 .cascade-reset:hover { color: var(--tx-2); }
 .cascade-reset.hidden { display: none; }
+
+.cascade-db-note {
+  font-size: 10px;
+  color: var(--tx-3);
+  margin-top: 8px;
+  line-height: 1.4;
+  padding: 0 2px;
+}
