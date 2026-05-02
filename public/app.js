@@ -111,16 +111,19 @@ async function selectCascadeModel(car, model) {
   try {
     const res = await fetch(`/api/fleet/years?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`);
     const years = await res.json();
-    const pills = el(car + '-year-pills');
-    pills.innerHTML = years.length
-      ? years.map(y =>
-          `<button class="cascade-pill" data-year="${y}">${y}</button>`
-        ).join('')
-      : '<div class="cascade-empty">No year data available</div>';
-    pills.querySelectorAll('.cascade-pill[data-year]').forEach(p => {
-      p.addEventListener('click', () => selectCascadeYear(car, parseInt(p.dataset.year)));
-    });
+    const sel = el(car + '-year-select');
+    if (!years.length) {
+      sel.innerHTML = '<option value="">No years available</option>';
+    } else {
+      sel.innerHTML = '<option value="">Select a year…</option>' +
+        years.map(y => `<option value="${y}">${y}</option>`).join('');
+      sel.onchange = () => {
+        const y = parseInt(sel.value);
+        if (y) selectCascadeYear(car, y);
+      };
+    }
     el(car + '-step-year').classList.remove('hidden');
+    setTimeout(() => sel.focus(), 50);
   } catch(e) { console.error('Year fetch failed', e); }
 }
 

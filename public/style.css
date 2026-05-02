@@ -592,16 +592,18 @@ footer {
 }
 .cascade-crumb-btn:hover { color: var(--tx-2); }
 
-/* Year pills */
-.cascade-pills { display: flex; flex-wrap: wrap; gap: 6px; }
-.cascade-pill {
-  padding: 4px 10px; border-radius: 20px;
-  font-size: 12px; font-weight: 600; cursor: pointer;
-  background: var(--bg-3); border: 1px solid var(--border-2);
-  color: var(--tx-2); transition: all 0.15s;
+/* Year select dropdown */
+.cascade-year-select {
+  width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 28px 8px 10px; font-size: 13px;
+  color: var(--tx-1); font-family: 'DM Sans', sans-serif; outline: none;
+  cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238b949e' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
 }
-.car-a .cascade-pill:hover { border-color: var(--a-accent); color: var(--a-accent); background: rgba(59,130,246,0.08); }
-.car-b .cascade-pill:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-glow); }
+.car-a .cascade-year-select:focus { border-color: var(--a-accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+.car-b .cascade-year-select:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-glow); }
 
 /* Variant cards */
 .cascade-variants { display: flex; flex-direction: column; gap: 6px; }
