@@ -172,6 +172,15 @@
             <div class="field"><label>Petrol use (L/100km)</label><input type="number" id="a-pl100" value="5" step="0.1" min="0"></div>
             <div class="field"><label>Electric use (kWh/100km)</label><input type="number" id="a-pkwh" value="18" step="0.5" min="0"></div>
             <div class="field"><label>% driven on electric</label><input type="number" id="a-ppct" value="50" step="5" min="0" max="100"></div>
+          <!-- EV info panel — shown when EV or PHEV selected -->
+          <div class="ev-info-panel hidden" id="a-ev-panel">
+            <div class="ev-panel-header" id="a-ev-toggle">
+              <span class="ev-panel-icon">⚡</span>
+              <span class="ev-panel-title">New to EVs? What you need to know</span>
+              <span class="ev-panel-arrow">▾</span>
+            </div>
+            <div class="ev-panel-body hidden" id="a-ev-body"></div>
+          </div>
           </div>
         </div>
       </div>
@@ -275,10 +284,28 @@
             <div class="field"><label>Petrol use (L/100km)</label><input type="number" id="b-pl100" value="5" step="0.1" min="0"></div>
             <div class="field"><label>Electric use (kWh/100km)</label><input type="number" id="b-pkwh" value="18" step="0.5" min="0"></div>
             <div class="field"><label>% driven on electric</label><input type="number" id="b-ppct" value="50" step="5" min="0" max="100"></div>
+          <!-- EV info panel — shown when EV or PHEV selected -->
+          <div class="ev-info-panel hidden" id="b-ev-panel">
+            <div class="ev-panel-header" id="b-ev-toggle">
+              <span class="ev-panel-icon">⚡</span>
+              <span class="ev-panel-title">New to EVs? What you need to know</span>
+              <span class="ev-panel-arrow">▾</span>
+            </div>
+            <div class="ev-panel-body hidden" id="b-ev-body"></div>
+          </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Multi-car comparison -->
+    <div class="add-car-row" id="add-car-row">
+      <button class="add-car-btn" id="add-car-btn">
+        <span class="add-car-plus">+</span> Add another car to compare
+      </button>
+      <span class="add-car-hint">Compare up to 5 cars — Car A is always the baseline</span>
+    </div>
+    <div class="extra-cars-grid" id="extra-cars-grid"></div>
 
     <!-- Assumptions -->
     <div class="assumptions-card">

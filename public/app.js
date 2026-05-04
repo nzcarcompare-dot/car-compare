@@ -646,16 +646,212 @@ function setStatus(car, msg, cls) {
 
 /* ── Fuel UI ───────────────────────────────────────────────────────────────── */
 function updateFuelUI(car) {
-  const f = el(car + '-fuel').value;
-  el(car + '-liq').classList.toggle('show',  ['petrol', 'diesel', 'hybrid'].includes(f));
-  el(car + '-elec').classList.toggle('show', f === 'ev');
-  el(car + '-phev').classList.toggle('show', f === 'phev');
+  const fuelSel = el(car + '-fuel');
+  if (!fuelSel) return;
+  const f = fuelSel.value;
+  const liq  = el(car + '-liq');
+  const elec = el(car + '-elec');
+  const phev = el(car + '-phev');
+  if (liq)  liq.classList.toggle('show',  ['petrol','diesel','hybrid'].includes(f));
+  if (elec) elec.classList.toggle('show', f === 'ev');
+  if (phev) phev.classList.toggle('show', f === 'phev');
+  // Show/hide EV info panel for main cards only
+  if (car === 'a' || car === 'b') {
+    const panel = el(car + '-ev-panel');
+    if (panel) panel.classList.toggle('hidden', f !== 'ev' && f !== 'phev');
+  }
 }
 el('a-fuel').addEventListener('change', () => updateFuelUI('a'));
 el('b-fuel').addEventListener('change', () => updateFuelUI('b'));
-// Default: EV shown for B since it's a common comparison
 updateFuelUI('a');
 updateFuelUI('b');
+
+
+/* ── EV Info Panel ──────────────────────────────────────────────────────────── */
+const EV_FAQ = [
+  { q: 'Do I need special equipment at home?', a: 'Every EV comes with a standard 3-pin plug charger — you can use any household socket. For faster charging, a wallbox installed by a licensed electrician is recommended. A 7kW wallbox charges most EVs overnight and costs around $800–$1,500 installed. EECA maintains an <a href="https://www.eeca.govt.nz/regulations/voluntary-guidance/ev-smart-charger-approved-list/" target="_blank" rel="noopener">approved list of smart home chargers</a>.' },
+  { q: 'What if I live in an apartment or rental?', a: "Relying on public charging is workable in cities but less convenient than home charging. Check with your body corporate or landlord — new rules from 2026 make it easier to install EV chargers in apartment buildings. Ask before you buy." },
+  { q: 'Where do I find public charging stations?', a: 'Use <a href="https://www.plugshare.com/" target="_blank" rel="noopener">PlugShare</a> (shows all charger types, community-updated) or <a href="https://www.chargenet.nz/map" target="_blank" rel="noopener">ChargeNet map</a> (NZ&#39;s largest fast-charging network). NZ has around 1,800 public charge points, with the government targeting 10,000 by 2030.' },
+  { q: 'What happens if I run the battery to 0%?', a: "EVs don't let the battery reach true 0% — they reserve a buffer and warn you well before empty. If you do run out, roadside assistance will tow you to a charger. In practice this is rare; most owners charge at home nightly and never come close to empty." },
+  { q: 'How does real-world range compare to the rated figure?', a: 'Expect 10–25% less than the WLTP-rated range in everyday driving. Cold weather, motorway speeds, and heating/AC all reduce range. If a car is rated 400km, plan around 300–340km between charges to be comfortable.' },
+  { q: 'What does it actually cost to charge?', a: 'Home charging off-peak can cost the equivalent of around $1.00–$1.50/litre of petrol. Public fast chargers cost more — roughly equivalent to $2.00–$2.50/litre. The comparison above calculates this using your electricity rate.' },
+  { q: 'What about battery longevity?', a: "Most manufacturers warranty the battery for 8 years or 160,000km at a minimum of 70% capacity. To extend battery life, avoid routinely charging to 100% — charging to 80% for daily use is common practice." },
+  { q: 'For PHEVs — how does the split work?', a: "A PHEV has a plug-in battery (typically 30–80km of pure electric range) plus a petrol engine. If you charge regularly and your daily trips are short, you can run mostly on electricity. For longer trips the petrol engine kicks in automatically." },
+];
+
+function initEVPanel(car) {
+  const toggle = el(car + '-ev-toggle');
+  const body   = el(car + '-ev-body');
+  if (!toggle || !body) return;
+  body.innerHTML = '<div class="ev-faq">' +
+    EV_FAQ.map(item =>
+      '<div class="ev-faq-item"><div class="ev-faq-q">' + item.q + '</div><div class="ev-faq-a">' + item.a + '</div></div>'
+    ).join('') + '</div>' +
+    '<div class="ev-links">' +
+    '<a class="ev-link-btn" href="https://www.genless.govt.nz/for-everyone/on-the-move/electric-vehicles/" target="_blank" rel="noopener">⚡ EECA EV Guide</a>' +
+    '<a class="ev-link-btn" href="https://www.chargenet.nz/map" target="_blank" rel="noopener">🗺 ChargeNet Map</a>' +
+    '<a class="ev-link-btn" href="https://www.plugshare.com/" target="_blank" rel="noopener">🔌 PlugShare</a>' +
+    '</div>';
+  toggle.addEventListener('click', () => {
+    const isOpen = !body.classList.contains('hidden');
+    body.classList.toggle('hidden', isOpen);
+    const arrow = toggle.querySelector('.ev-panel-arrow');
+    if (arrow) arrow.classList.toggle('open', !isOpen);
+  });
+}
+initEVPanel('a');
+initEVPanel('b');
+
+/* ── Multi-car comparison ────────────────────────────────────────────────────── */
+const extraCars = [];
+const MAX_EXTRA = 3;
+const EXTRA_COLOURS = ['#c084fc','#f59e0b','#f87171'];
+const EXTRA_LABELS  = ['Car C','Car D','Car E'];
+
+function addExtraCar() {
+  if (extraCars.length >= MAX_EXTRA) return;
+  const idx = extraCars.length;
+  const id  = 'x' + idx;
+  const col = EXTRA_COLOURS[idx];
+  const lbl = EXTRA_LABELS[idx];
+  extraCars.push({ id, label: lbl, colour: col });
+
+  const card = document.createElement('div');
+  card.className = 'car-card-extra';
+  card.id = 'card-' + id;
+  card.innerHTML =
+    '<div class="extra-card-stripe" style="background:linear-gradient(90deg,' + col + ',' + col + '44)"></div>' +
+    '<button class="remove-car-btn" data-id="' + id + '">✕ Remove</button>' +
+    '<div class="extra-card-top">' +
+      '<div class="car-pill" style="background:' + col + '18;color:' + col + ';border:1px solid ' + col + '44;margin-bottom:10px">⬤ ' + lbl + '</div>' +
+      '<div class="plate-row" style="margin-bottom:6px">' +
+        '<input class="plate-input" id="' + id + '-plate-input" placeholder="Enter plate…" maxlength="8" autocomplete="off">' +
+        '<button class="action-btn" id="' + id + '-lbtn" style="background:' + col + '18;color:' + col + '">Look up</button>' +
+      '</div>' +
+      '<div class="status-line" id="' + id + '-status"></div>' +
+      '<div class="vbanner" id="' + id + '-banner" style="display:none">' +
+        '<div class="vb-name" id="' + id + '-vname"></div>' +
+        '<div class="vb-meta" id="' + id + '-vmeta"></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="extra-card-fields">' +
+      '<div class="field"><label>Purchase price (NZD)</label><input type="number" id="' + id + '-price" value="30000" step="500" min="0"></div>' +
+      '<div class="field"><label>Fuel type</label><select id="' + id + '-fuel">' +
+        '<option value="petrol">Petrol</option><option value="diesel">Diesel</option>' +
+        '<option value="ev">Electric (EV)</option><option value="hybrid">Hybrid</option>' +
+        '<option value="phev">Plug-in Hybrid (PHEV)</option>' +
+      '</select></div>' +
+      '<div class="fsub show" id="' + id + '-liq"><div class="field"><label>Fuel use (L/100km)</label><input type="number" id="' + id + '-l100" value="7.5" step="0.1" min="0"></div></div>' +
+      '<div class="fsub" id="' + id + '-elec"><div class="field"><label>Electricity use (kWh/100km)</label><input type="number" id="' + id + '-kwh" value="17" step="0.5" min="0"></div></div>' +
+      '<div class="fsub" id="' + id + '-phev">' +
+        '<div class="field"><label>Petrol use (L/100km)</label><input type="number" id="' + id + '-pl100" value="5" step="0.1" min="0"></div>' +
+        '<div class="field"><label>kWh/100km electric</label><input type="number" id="' + id + '-pkwh" value="18" step="0.5" min="0"></div>' +
+        '<div class="field"><label>% driven on electric</label><input type="number" id="' + id + '-ppct" value="50" step="5" min="0" max="100"></div>' +
+      '</div>' +
+    '</div>';
+
+  el('extra-cars-grid').appendChild(card);
+  el(id + '-fuel').addEventListener('change', () => updateFuelUI(id));
+  el(id + '-lbtn').addEventListener('click', () => lookupExtraPlate(id));
+  el(id + '-plate-input').addEventListener('keydown', e => { if (e.key === 'Enter') lookupExtraPlate(id); });
+  el(id + '-plate-input').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
+  card.querySelector('.remove-car-btn').addEventListener('click', () => removeExtraCar(id));
+  if (extraCars.length >= MAX_EXTRA) {
+    el('add-car-btn').disabled = true;
+    el('add-car-hint').textContent = 'Maximum of 5 cars reached';
+  }
+}
+
+async function lookupExtraPlate(id) {
+  const plate = el(id + '-plate-input').value.trim().toUpperCase().replace(/\s/g, '');
+  if (!plate) return;
+  const btn = el(id + '-lbtn');
+  btn.disabled = true; btn.textContent = '…';
+  el(id + '-status').textContent = 'Looking up ' + plate + '…';
+  el(id + '-status').className = 'status-line s-load';
+  try {
+    const res = await fetch('/api/lookup/' + encodeURIComponent(plate));
+    const v = await res.json();
+    if (!res.ok) throw new Error(v.error || 'Not found');
+    el(id + '-vname').textContent = v.name || plate;
+    el(id + '-vmeta').textContent = [v.bodyType, v.trans, v.seats ? v.seats + ' seats' : ''].filter(Boolean).join(' · ');
+    el(id + '-banner').style.display = 'block';
+    el(id + '-fuel').value = v.fuelType || 'petrol';
+    updateFuelUI(id);
+    if (v.adjustedPrice || v.price) el(id + '-price').value = v.adjustedPrice || v.price;
+    if (v.l100) el(id + '-l100').value = v.l100;
+    if (v.kwh)  el(id + '-kwh').value  = v.kwh;
+    el(id + '-status').textContent = '✓ Found'; el(id + '-status').className = 'status-line s-ok';
+  } catch(e) {
+    el(id + '-status').textContent = '✗ ' + e.message; el(id + '-status').className = 'status-line s-err';
+  } finally { btn.disabled = false; btn.textContent = 'Look up'; }
+}
+
+function removeExtraCar(id) {
+  const idx = extraCars.findIndex(c => c.id === id);
+  if (idx !== -1) extraCars.splice(idx, 1);
+  const card = el('card-' + id);
+  if (card) card.remove();
+  el('add-car-btn').disabled = false;
+  el('add-car-hint').textContent = 'Compare up to 5 cars — Car A is always the baseline';
+  const section = document.getElementById('multi-results-section');
+  if (section && extraCars.length === 0) section.remove();
+}
+
+function runningCostById(id) {
+  const km = val('km'), pp = val('pp'), dp = val('dp'), ep = val('ep');
+  const f = el(id + '-fuel') ? el(id + '-fuel').value : 'petrol';
+  if (f === 'ev')     return (val(id+'-kwh')/100)*km*ep + (km/1000)*val('ruc-e');
+  if (f === 'diesel') return (val(id+'-l100')/100)*km*dp + (km/1000)*val('ruc-d');
+  if (f === 'hybrid') return (val(id+'-l100')/100)*km*pp;
+  if (f === 'phev') { const p=val(id+'-ppct')/100; return p*(val(id+'-pkwh')/100)*km*ep+(1-p)*(val(id+'-pl100')/100)*km*pp; }
+  return (val(id+'-l100')/100)*km*pp;
+}
+
+function renderMultiResults(yrs, km, pA, rA, pB, rB) {
+  const allCars = [
+    { label: state.a.name || 'Car A', total: Math.round(pA+rA*yrs), annual: Math.round(rA), price: pA, colour: '#3b82f6' },
+    { label: state.b.name || 'Car B', total: Math.round(pB+rB*yrs), annual: Math.round(rB), price: pB, colour: '#0ecfb0' },
+    ...extraCars.map(c => {
+      const rc = runningCostById(c.id);
+      const p  = val(c.id+'-price');
+      return { label: c.label, total: Math.round(p+rc*yrs), annual: Math.round(rc), price: p, colour: c.colour };
+    })
+  ];
+  if (allCars.length <= 2) { const s=document.getElementById('multi-results-section'); if(s) s.remove(); return; }
+
+  const ranked = allCars.slice().sort((a,b) => a.total - b.total);
+  const badges = ['badge-1','badge-2','badge-3','badge-4','badge-5'];
+
+  const rows =
+    '<tr><th>Metric</th>' + allCars.map((c,i) => {
+      const rank = ranked.findIndex(r => r.label===c.label)+1;
+      const name = c.label.length>16 ? c.label.slice(0,14)+'…' : c.label;
+      return '<th style="color:' + c.colour + '">' + name + ' <span class="multi-rank-badge ' + badges[rank-1] + '">#' + rank + '</span></th>';
+    }).join('') + '</tr>' +
+    '<tr><td>Purchase price</td>' + allCars.map(c=>'<td>$'+c.price.toLocaleString()+'</td>').join('') + '</tr>' +
+    '<tr><td>Annual running</td>' + allCars.map(c=>'<td>$'+c.annual.toLocaleString()+'</td>').join('') + '</tr>' +
+    '<tr class="total-row"><td><strong>Total over '+yrs+' yrs</strong></td>' + allCars.map(c => {
+      const rank = ranked.findIndex(r=>r.label===c.label)+1;
+      return '<td class="'+(rank===1?'multi-rank-1':'')+'">$'+c.total.toLocaleString()+'</td>';
+    }).join('') + '</tr>' +
+    '<tr><td>vs best option</td>' + allCars.map(c => {
+      const diff = c.total - ranked[0].total;
+      return diff===0 ? '<td class="multi-rank-1">Best ✓</td>' : '<td style="color:#f87171">+$'+diff.toLocaleString()+'</td>';
+    }).join('') + '</tr>';
+
+  let section = document.getElementById('multi-results-section');
+  if (!section) {
+    section = document.createElement('div');
+    section.id = 'multi-results-section';
+    section.className = 'multi-results';
+    const tabsCard = document.querySelector('.tabs-card');
+    if (tabsCard) tabsCard.parentNode.insertBefore(section, tabsCard);
+  }
+  section.innerHTML = '<div class="multi-results-title">All cars ranked — ' + yrs + ' year projection at ' + km.toLocaleString() + ' km/yr</div><div style="overflow-x:auto"><table class="multi-table">' + rows + '</table></div>';
+}
+
+el('add-car-btn').addEventListener('click', addExtraCar);
 
 /* ── Swap ──────────────────────────────────────────────────────────────────── */
 el('swap-btn').addEventListener('click', () => {
@@ -999,6 +1195,9 @@ function compare() {
   void resultsEl.offsetWidth;
   resultsEl.classList.add('results-enter');
   setTimeout(() => resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+
+  // Multi-car ranked table (only shown when extra cars exist)
+  renderMultiResults(yrs, km, pA, rA, pB, rB);
 }
 
 /* ── Share ─────────────────────────────────────────────────────────────────── */
