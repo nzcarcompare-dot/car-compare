@@ -717,25 +717,63 @@ function addExtraCar() {
   extraCars.push({ id, label: lbl, colour: col });
 
   const card = document.createElement('div');
-  card.className = 'car-card-extra';
+  card.className = 'car-card car-card-extra';
   card.id = 'card-' + id;
   card.innerHTML =
-    '<div class="extra-card-stripe" style="background:linear-gradient(90deg,' + col + ',' + col + '44)"></div>' +
-    '<button class="remove-car-btn" data-id="' + id + '">✕ Remove</button>' +
-    '<div class="extra-card-top">' +
-      '<div class="car-pill" style="background:' + col + '18;color:' + col + ';border:1px solid ' + col + '44;margin-bottom:10px">⬤ ' + lbl + '</div>' +
-      '<div class="plate-row" style="margin-bottom:6px">' +
-        '<input class="plate-input" id="' + id + '-plate-input" placeholder="Enter plate…" maxlength="8" autocomplete="off">' +
-        '<button class="action-btn" id="' + id + '-lbtn" style="background:' + col + '18;color:' + col + '">Look up</button>' +
+    '<div class="car-stripe" style="background:linear-gradient(90deg,' + col + ',' + col + '44)"></div>' +
+    '<div class="car-card-top">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
+        '<div class="car-pill" style="background:' + col + '18;color:' + col + ';border:1px solid ' + col + '44">⬤ ' + lbl + '</div>' +
+        '<button class="remove-car-btn" data-id="' + id + '">✕ Remove</button>' +
+      '</div>' +
+      // Mode toggle
+      '<div class="mode-toggle" style="margin-bottom:10px">' +
+        '<button class="mode-btn active" data-car="' + id + '" data-mode="plate">Enter plate</button>' +
+        '<button class="mode-btn" data-car="' + id + '" data-mode="browse">Pick from list</button>' +
+      '</div>' +
+      // Plate panel
+      '<div class="search-panel active" id="' + id + '-plate">' +
+        '<div class="plate-row">' +
+          '<input class="plate-input" id="' + id + '-plate-input" placeholder="ABC123" maxlength="8" autocomplete="off">' +
+          '<button class="action-btn" id="' + id + '-lbtn" style="background:' + col + '18;color:' + col + '">Look up</button>' +
+        '</div>' +
+      '</div>' +
+      // Browse panel (cascade)
+      '<div class="search-panel" id="' + id + '-browse">' +
+        '<div class="cascade" id="' + id + '-cascade">' +
+          '<div class="cascade-step" id="' + id + '-step-make">' +
+            '<div class="cascade-search-wrap">' +
+              '<input class="cascade-input" id="' + id + '-make-input" placeholder="Type a make…" autocomplete="off">' +
+              '<div class="cascade-dropdown" id="' + id + '-make-list"></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="cascade-step hidden" id="' + id + '-step-model">' +
+            '<div class="cascade-crumb" id="' + id + '-crumb-make"></div>' +
+            '<div class="cascade-search-wrap">' +
+              '<input class="cascade-input" id="' + id + '-model-input" placeholder="Type a model…" autocomplete="off">' +
+              '<div class="cascade-dropdown" id="' + id + '-model-list"></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="cascade-step hidden" id="' + id + '-step-year">' +
+            '<div class="cascade-crumb" id="' + id + '-crumb-model"></div>' +
+            '<select class="cascade-year-select" id="' + id + '-year-select"></select>' +
+          '</div>' +
+          '<div class="cascade-step hidden" id="' + id + '-step-variant">' +
+            '<div class="cascade-crumb" id="' + id + '-crumb-year"></div>' +
+            '<div class="cascade-variants" id="' + id + '-variant-list"></div>' +
+          '</div>' +
+          '<button class="cascade-reset hidden" id="' + id + '-cascade-reset">↩ Start over</button>' +
+        '</div>' +
       '</div>' +
       '<div class="status-line" id="' + id + '-status"></div>' +
-      '<div class="vbanner" id="' + id + '-banner" style="display:none">' +
+      '<div class="vbanner" id="' + id + '-banner">' +
         '<div class="vb-name" id="' + id + '-vname"></div>' +
         '<div class="vb-meta" id="' + id + '-vmeta"></div>' +
+        '<div class="vb-tags" id="' + id + '-vtags"></div>' +
       '</div>' +
     '</div>' +
-    '<div class="extra-card-fields">' +
-      '<div class="field"><label>Purchase price (NZD)</label><input type="number" id="' + id + '-price" value="30000" step="500" min="0"></div>' +
+    '<div class="card-fields">' +
+      '<div class="field"><label>Purchase price (NZD)</label><input type="number" id="' + id + '-price" value="30000" step="500" min="0"><div id="' + id + '-price-source" class="price-source"></div></div>' +
       '<div class="field"><label>Fuel type</label><select id="' + id + '-fuel">' +
         '<option value="petrol">Petrol</option><option value="diesel">Diesel</option>' +
         '<option value="ev">Electric (EV)</option><option value="hybrid">Hybrid</option>' +
@@ -750,16 +788,71 @@ function addExtraCar() {
       '</div>' +
     '</div>';
 
-  el('extra-cars-grid').appendChild(card);
+  // Insert before the + card
+  const addCard = el('add-car-card');
+  el('cars-grid').insertBefore(card, addCard);
+
+  // Wire up mode toggle
+  card.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      ['plate','browse'].forEach(m => {
+        const p = el(id + '-' + m);
+        if (p) p.classList.toggle('active', m === mode);
+      });
+      card.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+      hideBannerById(id);
+      if (mode === 'browse') initCascadeForId(id);
+    });
+  });
+
+  // Plate lookup
   el(id + '-fuel').addEventListener('change', () => updateFuelUI(id));
   el(id + '-lbtn').addEventListener('click', () => lookupExtraPlate(id));
   el(id + '-plate-input').addEventListener('keydown', e => { if (e.key === 'Enter') lookupExtraPlate(id); });
   el(id + '-plate-input').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
   card.querySelector('.remove-car-btn').addEventListener('click', () => removeExtraCar(id));
-  if (extraCars.length >= MAX_EXTRA) {
-    el('add-car-btn').disabled = true;
-    el('add-car-hint').textContent = 'Maximum of 5 cars reached';
-  }
+
+  // Cascade
+  initCascadeForId(id);
+
+  // Hide + card if at max
+  if (extraCars.length >= MAX_EXTRA) el('add-car-card').classList.add('hidden');
+
+  // Scroll the new card into view
+  setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'end' }), 50);
+}
+
+function hideBannerById(id) {
+  const b = el(id + '-banner');
+  if (b) b.classList.remove('show');
+  clearPriceSource(id);
+  const s = el(id + '-status');
+  if (s) { s.textContent = ''; s.className = 'status-line'; }
+}
+
+// Cascade initialiser for dynamically created extra cards
+function initCascadeForId(id) {
+  const makeInput  = el(id + '-make-input');
+  const modelInput = el(id + '-model-input');
+  const makeList   = el(id + '-make-list');
+  const modelList  = el(id + '-model-list');
+  const resetBtn   = el(id + '-cascade-reset');
+  if (!makeInput || makeInput._cascadeInit) return;
+  makeInput._cascadeInit = true;
+
+  if (!cascadeState[id]) cascadeState[id] = { make: null, model: null, year: null };
+
+  makeInput.addEventListener('input',  () => renderCascadeMakes(id, makeInput.value));
+  makeInput.addEventListener('focus',  () => {
+    if (fleetMakes) renderCascadeMakes(id, makeInput.value);
+    else loadFleetMakes().then(() => renderCascadeMakes(id, makeInput.value));
+  });
+  makeInput.addEventListener('blur',   () => setTimeout(() => makeList.classList.remove('open'), 180));
+  modelInput.addEventListener('input',  () => renderCascadeModels(id, modelInput.value));
+  modelInput.addEventListener('focus',  () => renderCascadeModels(id, modelInput.value));
+  modelInput.addEventListener('blur',   () => setTimeout(() => modelList.classList.remove('open'), 180));
+  if (resetBtn) resetBtn.addEventListener('click', () => cascadeReset(id));
 }
 
 async function lookupExtraPlate(id) {
@@ -767,23 +860,47 @@ async function lookupExtraPlate(id) {
   if (!plate) return;
   const btn = el(id + '-lbtn');
   btn.disabled = true; btn.textContent = '…';
-  el(id + '-status').textContent = 'Looking up ' + plate + '…';
-  el(id + '-status').className = 'status-line s-load';
+  const statusEl = el(id + '-status');
+  statusEl.textContent = 'Looking up ' + plate + '…';
+  statusEl.className = 'status-line s-load';
+  hideBannerById(id);
   try {
     const res = await fetch('/api/lookup/' + encodeURIComponent(plate));
     const v = await res.json();
     if (!res.ok) throw new Error(v.error || 'Not found');
-    el(id + '-vname').textContent = v.name || plate;
-    el(id + '-vmeta').textContent = [v.bodyType, v.trans, v.seats ? v.seats + ' seats' : ''].filter(Boolean).join(' · ');
-    el(id + '-banner').style.display = 'block';
+    // Populate fields
     el(id + '-fuel').value = v.fuelType || 'petrol';
     updateFuelUI(id);
     if (v.adjustedPrice || v.price) el(id + '-price').value = v.adjustedPrice || v.price;
     if (v.l100) el(id + '-l100').value = v.l100;
     if (v.kwh)  el(id + '-kwh').value  = v.kwh;
-    el(id + '-status').textContent = '✓ Found'; el(id + '-status').className = 'status-line s-ok';
+    // Show banner
+    const nameEl = el(id + '-vname');
+    const metaEl = el(id + '-vmeta');
+    const tagsEl = el(id + '-vtags');
+    const bannerEl = el(id + '-banner');
+    if (nameEl) nameEl.textContent = v.name || plate;
+    if (metaEl) metaEl.textContent = [v.bodyType, v.trans, v.seats ? v.seats+' seats' : '', v.odometer ? parseInt(v.odometer).toLocaleString()+' km' : ''].filter(Boolean).join(' · ');
+    if (tagsEl) {
+      const fuelTagMap = { petrol:'tag-petrol', diesel:'tag-diesel', ev:'tag-ev', hybrid:'tag-hybrid', phev:'tag-phev' };
+      const fuelLblMap = { petrol:'Petrol', diesel:'Diesel', ev:'Electric', hybrid:'Hybrid', phev:'PHEV' };
+      const ft = v.fuelType || 'petrol';
+      const co2 = v.co2 || 0;
+      const co2cls = co2 === 0 ? 'tag-co2-zero' : co2 < 120 ? 'tag-co2-low' : co2 < 180 ? 'tag-co2-mid' : 'tag-co2-high';
+      tagsEl.innerHTML = '<span class="tag ' + (fuelTagMap[ft]||'') + '">' + (fuelLblMap[ft]||ft) + '</span>' +
+        '<span class="tag ' + co2cls + '">' + (co2 === 0 ? 'Zero emissions' : co2+' g/km CO₂') + '</span>';
+    }
+    if (bannerEl) bannerEl.classList.add('show');
+    // Price source
+    if (v.adjustedPrice && v.odometer) {
+      const psSrc = el(id + '-price-source');
+      if (psSrc) { psSrc.textContent = '✓ Adjusted for ' + parseInt(v.odometer).toLocaleString() + ' km'; psSrc.className = 'price-source ps-found'; }
+    } else if (v.price) {
+      setPriceSource(id, true);
+    }
+    statusEl.textContent = '✓ Found'; statusEl.className = 'status-line s-ok';
   } catch(e) {
-    el(id + '-status').textContent = '✗ ' + e.message; el(id + '-status').className = 'status-line s-err';
+    statusEl.textContent = '✗ ' + e.message; statusEl.className = 'status-line s-err';
   } finally { btn.disabled = false; btn.textContent = 'Look up'; }
 }
 
@@ -792,8 +909,9 @@ function removeExtraCar(id) {
   if (idx !== -1) extraCars.splice(idx, 1);
   const card = el('card-' + id);
   if (card) card.remove();
-  el('add-car-btn').disabled = false;
-  el('add-car-hint').textContent = 'Compare up to 5 cars — Car A is always the baseline';
+  // Always show the + card when below max
+  const addCard = el('add-car-card');
+  if (addCard) addCard.classList.remove('hidden');
   const section = document.getElementById('multi-results-section');
   if (section && extraCars.length === 0) section.remove();
 }

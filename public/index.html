@@ -71,7 +71,8 @@
   <main>
 
     <!-- Car Cards -->
-    <div class="cars-grid">
+    <div class="cars-scroll-wrap">
+      <div class="cars-grid" id="cars-grid">
 
       <!-- CAR A -->
       <div class="car-card car-a" id="card-a">
@@ -296,16 +297,16 @@
           </div>
         </div>
       </div>
-    </div>
+        <!-- Add car button — renders as a card in the row -->
+        <div class="car-card-add" id="add-car-card">
+          <button class="add-car-btn" id="add-car-btn">
+            <span class="add-car-plus">+</span>
+            <span class="add-car-btn-label">Add car<br><small>up to 5 total</small></span>
+          </button>
+        </div>
+      </div><!-- /cars-grid -->
+    </div><!-- /cars-scroll-wrap -->
 
-    <!-- Multi-car comparison -->
-    <div class="add-car-row" id="add-car-row">
-      <button class="add-car-btn" id="add-car-btn">
-        <span class="add-car-plus">+</span> Add another car to compare
-      </button>
-      <span class="add-car-hint">Compare up to 5 cars — Car A is always the baseline</span>
-    </div>
-    <div class="extra-cars-grid" id="extra-cars-grid"></div>
 
     <!-- Assumptions -->
     <div class="assumptions-card">
