@@ -634,9 +634,11 @@ function showBanner(car, v) {
 }
 
 function hideBanner(car) {
-  el(car + '-banner').classList.remove('show');
+  const b = el(car + '-banner');
+  if (b) b.classList.remove('show');
   clearPriceSource(car);
-  el(car + '-insurance').style.display = 'none';
+  const ins = el(car + '-insurance');
+  if (ins) ins.style.display = 'none';
 }
 
 function setStatus(car, msg, cls) {
@@ -715,6 +717,9 @@ function addExtraCar() {
   const col = EXTRA_COLOURS[idx];
   const lbl = EXTRA_LABELS[idx];
   extraCars.push({ id, label: lbl, colour: col });
+  state[id] = { name: lbl, make:'', model:'', year:'', fuelType:'petrol', co2:0,
+    stars:null, safety:null, seats:null, bodyType:'', trans:'', cc:null, notes:'', odometer:null };
+  cascadeState[id] = { make: null, model: null, year: null };
 
   const card = document.createElement('div');
   card.className = 'car-card car-card-extra';
@@ -816,6 +821,9 @@ function addExtraCar() {
   // Cascade
   initCascadeForId(id);
 
+  // Switch to fixed-width scroll mode now that we have 3+ cards
+  el('cars-grid').classList.add('scroll-mode');
+
   // Hide + card if at max
   if (extraCars.length >= MAX_EXTRA) el('add-car-card').classList.add('hidden');
 
@@ -907,11 +915,15 @@ async function lookupExtraPlate(id) {
 function removeExtraCar(id) {
   const idx = extraCars.findIndex(c => c.id === id);
   if (idx !== -1) extraCars.splice(idx, 1);
+  delete state[id];
+  delete cascadeState[id];
   const card = el('card-' + id);
   if (card) card.remove();
   // Always show the + card when below max
   const addCard = el('add-car-card');
   if (addCard) addCard.classList.remove('hidden');
+  // Revert to fluid layout if no extra cars remain
+  if (extraCars.length === 0) el('cars-grid').classList.remove('scroll-mode');
   const section = document.getElementById('multi-results-section');
   if (section && extraCars.length === 0) section.remove();
 }

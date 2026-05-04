@@ -135,12 +135,11 @@ input[type="range"] {
 main { max-width: 1040px; margin: 0 auto; padding: 0 16px 80px; }
 
 /* ── Car cards ──────────────────────────────────────────────────────────────── */
-/* ── Horizontal cars scroll ─────────────────────────────────────────────────── */
+/* ── Cars row — fluid by default, scrolls when 3+ cards ─────────────────────── */
 .cars-scroll-wrap {
   overflow-x: auto;
   overflow-y: visible;
   margin-bottom: 20px;
-  /* hide scrollbar but keep functionality */
   scrollbar-width: thin;
   scrollbar-color: var(--border-2) transparent;
   padding-bottom: 6px;
@@ -149,20 +148,29 @@ main { max-width: 1040px; margin: 0 auto; padding: 0 16px 80px; }
 .cars-scroll-wrap::-webkit-scrollbar-track { background: transparent; }
 .cars-scroll-wrap::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
 
+/* Default: fluid — Car A and B share all available width equally */
 .cars-grid {
   display: flex;
   flex-direction: row;
   gap: 14px;
-  /* min-width ensures it doesn't shrink below 2 cards */
+}
+
+/* Scroll mode: activated when a 3rd card is added */
+.cars-grid.scroll-mode {
   min-width: max-content;
+}
+.cars-grid.scroll-mode .car-card,
+.cars-grid.scroll-mode .car-card-extra {
+  width: 300px;
+  flex-shrink: 0;
 }
 .car-card {
   background: var(--card-bg); border: 1px solid var(--border);
   border-radius: 16px; overflow: hidden;
   transition: box-shadow 0.2s, border-color 0.2s;
   box-shadow: var(--shadow-sm);
-  width: 320px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 260px;
 }
 .car-card:hover { border-color: var(--border-2); box-shadow: var(--shadow); }
 .car-card-top { padding: 16px 16px 0; }
@@ -456,8 +464,9 @@ main { max-width: 1040px; margin: 0 auto; padding: 0 16px 80px; }
 
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 660px) {
-  .car-card, .car-card-extra { width: 290px; }
-  .car-card-add { width: 68px; }
+  .cars-grid.scroll-mode .car-card,
+  .cars-grid.scroll-mode .car-card-extra { width: 270px; }
+  .car-card-add { width: 60px; }
   .summary-grid { grid-template-columns: 1fr 1fr; }
   .co2-lbl { width: 90px; }
   .hero-title { font-size: 24px; }
@@ -736,7 +745,7 @@ footer {
 
 /* ── Add car card & extra cards ─────────────────────────────────────────────── */
 .car-card-add {
-  width: 80px; flex-shrink: 0;
+  width: 72px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   background: var(--bg-2);
   border: 2px dashed var(--border-2);
