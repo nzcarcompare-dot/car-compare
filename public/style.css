@@ -844,3 +844,30 @@ footer {
 @media (max-width: 660px) {
   .multi-table th, .multi-table td { padding: 8px 10px; font-size: 12px; }
 }
+
+/* ── Chart line toggles ──────────────────────────────────────────────────────── */
+.chart-toggles {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding: 12px 0 4px;
+}
+.chart-toggle-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 20px;
+  background: var(--bg-3);
+  border: 1px solid var(--border-2);
+  font-size: 12px; font-weight: 600;
+  color: var(--tx-2); cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s; opacity: 0.45;
+}
+.chart-toggle-btn.active {
+  opacity: 1;
+  border-color: var(--tc);
+  background: color-mix(in srgb, var(--tc) 10%, var(--bg-3));
+  color: var(--tc);
+}
+.chart-toggle-btn:hover { opacity: 0.85; }
+.ct-swatch {
+  width: 10px; height: 10px;
+  border-radius: 50%; flex-shrink: 0;
+}

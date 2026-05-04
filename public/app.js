@@ -775,7 +775,20 @@ function addExtraCar() {
         '<div class="vb-name" id="' + id + '-vname"></div>' +
         '<div class="vb-meta" id="' + id + '-vmeta"></div>' +
         '<div class="vb-tags" id="' + id + '-vtags"></div>' +
+        '<div class="banner-links">' +
+          '<a class="trademe-btn" id="' + id + '-trademe" href="#" target="_blank" rel="noopener">' +
+            '<span class="tm-dot"></span>Search similar on Trade Me ↗' +
+          '</a>' +
+        '</div>' +
       '</div>' +
+    '</div>' +
+    '<div class="ev-info-panel hidden" id="' + id + '-ev-panel">' +
+      '<div class="ev-panel-header" id="' + id + '-ev-toggle">' +
+        '<span class="ev-panel-icon">⚡</span>' +
+        '<span class="ev-panel-title">New to EVs? What you need to know</span>' +
+        '<span class="ev-panel-arrow">▾</span>' +
+      '</div>' +
+      '<div class="ev-panel-body hidden" id="' + id + '-ev-body"></div>' +
     '</div>' +
     '<div class="card-fields">' +
       '<div class="field"><label>Purchase price (NZD)</label><input type="number" id="' + id + '-price" value="30000" step="500" min="0"><div id="' + id + '-price-source" class="price-source"></div></div>' +
@@ -796,6 +809,12 @@ function addExtraCar() {
   // Insert before the + card
   const addCard = el('add-car-card');
   el('cars-grid').insertBefore(card, addCard);
+
+  // Wire up EV panel
+  initEVPanel(id);
+
+  // Wire up EV panel for extra card
+  initEVPanel(id);
 
   // Wire up mode toggle
   card.querySelectorAll('.mode-btn').forEach(btn => {
@@ -1113,86 +1132,113 @@ function compare() {
   const ttTip = dark ? '#e6edf3' : '#0f172a';
   const bdTip = dark ? '#8b949e' : '#64748b';
 
-  // Inline label plugin — draws car names at the end of each line
+  // Inline label plugin — draws car names at end of each visible line
   const inlineLabelPlugin = {
     id: 'inlineLabels',
     afterDatasetsDraw(chart) {
-      const ctx    = chart.ctx;
-      const meta0  = chart.getDatasetMeta(0);
-      const meta1  = chart.getDatasetMeta(1);
-      const last0  = meta0.data[meta0.data.length - 1];
-      const last1  = meta1.data[meta1.data.length - 1];
-      if (!last0 || !last1) return;
+      const ctx     = chart.ctx;
+      const isDark  = document.documentElement.dataset.theme === 'dark';
+      const labelBg = isDark ? 'rgba(22,27,34,0.9)' : 'rgba(255,255,255,0.9)';
+      const n       = chart.data.datasets.length;
 
-      const isDark = document.documentElement.dataset.theme === 'dark';
-      const labelBg = isDark ? 'rgba(22,27,34,0.88)' : 'rgba(255,255,255,0.88)';
+      // Collect visible datasets with their end-point y positions
+      const visible = [];
+      for (let i = 0; i < n; i++) {
+        const meta = chart.getDatasetMeta(i);
+        if (meta.hidden) continue;
+        const pts = meta.data;
+        if (!pts || !pts.length) continue;
+        const last = pts[pts.length - 1];
+        visible.push({ i, last, colour: chart.data.datasets[i].borderColor, label: chart.data.datasets[i].label });
+      }
+      if (!visible.length) return;
 
-      [[last0, '#3b82f6', nA], [last1, '#0ecfb0', nB]].forEach(([pt, colour, name], i) => {
-        const x = pt.x;
-        const y = pt.y;
+      // Sort by y position so we can spread overlapping labels
+      visible.sort((a, b) => a.last.y - b.last.y);
 
-        // Determine vertical offset — push apart if lines are close at the end
-        const gap = last0.y - last1.y;
-        let yOff = i === 0
-          ? (gap > -30 ? -28 : -14)   // Car A label above its line end
-          : (gap < 30  ?  28 :  14);   // Car B label below its line end
+      // Assign vertical offsets — alternate above/below, spread by 28px min
+      const assigned = [];
+      visible.forEach((v, rank) => {
+        // Alternate: even ranks go above (-), odd go below (+)
+        const sign   = rank % 2 === 0 ? -1 : 1;
+        const base   = 26 + Math.floor(rank / 2) * 18;
+        assigned.push({ ...v, yOff: sign * base });
+      });
 
-        // Dot at line end
+      assigned.forEach(({ last, colour, label, yOff }) => {
+        const x  = last.x;
+        const y  = last.y;
+        const ly = y + yOff;
+
         ctx.save();
+
+        // Dot
         ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.arc(x, y, 3.5, 0, Math.PI * 2);
         ctx.fillStyle = colour;
         ctx.fill();
 
-        // Small vertical tick from dot to label
+        // Tick line
         ctx.beginPath();
         ctx.moveTo(x, y);
-        ctx.lineTo(x, y + yOff * 0.55);
+        ctx.lineTo(x, ly);
         ctx.strokeStyle = colour;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1.2;
         ctx.setLineDash([3, 2]);
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Measure label text
-        const label    = name.length > 22 ? name.slice(0, 20) + '…' : name;
+        // Pill label
+        const text     = label.length > 24 ? label.slice(0, 22) + '…' : label;
         const fontSize = 11;
         ctx.font       = `700 ${fontSize}px DM Sans, sans-serif`;
-        const tw       = ctx.measureText(label).width;
-        const pad      = 6;
-        const lx       = Math.min(x - tw / 2, chart.width - tw - pad * 2 - 4);
-        const ly       = y + yOff;
+        const tw  = ctx.measureText(text).width;
+        const pad = 6;
+        // Keep pill inside chart bounds
+        const lx  = Math.max(pad, Math.min(x - tw / 2, chart.chartArea.right - tw - pad));
 
-        // Pill background
         ctx.beginPath();
-        ctx.roundRect(lx - pad, ly - fontSize / 2 - pad * 0.6, tw + pad * 2, fontSize + pad * 1.2, 4);
+        ctx.roundRect(lx - pad, ly - fontSize / 2 - pad * 0.7, tw + pad * 2, fontSize + pad * 1.4, 4);
         ctx.fillStyle = labelBg;
         ctx.fill();
         ctx.strokeStyle = colour;
-        ctx.lineWidth = 1.2;
+        ctx.lineWidth   = 1.2;
         ctx.stroke();
 
-        // Label text
-        ctx.fillStyle = colour;
-        ctx.textAlign = 'left';
+        ctx.fillStyle    = colour;
+        ctx.textAlign    = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText(label, lx, ly);
+        ctx.fillText(text, lx, ly);
 
         ctx.restore();
       });
     }
   };
 
+  // Build datasets for all cars (A, B + any extras)
+  const allDatasets = [
+    { label: nA, data: dA, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', tension: 0.4, pointRadius: 0, borderWidth: 2.5, fill: true },
+    { label: nB, data: dB, borderColor: '#0ecfb0', backgroundColor: 'rgba(14,207,176,0.08)', tension: 0.4, pointRadius: 0, borderWidth: 2.5, fill: true },
+  ];
+  const extraColours = ['#c084fc','#f59e0b','#f87171'];
+  const extraColoursBg = ['rgba(192,132,252,0.07)','rgba(245,158,11,0.07)','rgba(248,113,113,0.07)'];
+  extraCars.forEach((c, i) => {
+    const rc = runningCostById(c.id);
+    const p  = val(c.id + '-price');
+    const stName  = state[c.id] && state[c.id].name ? state[c.id].name.trim() : '';
+    const carName  = (stName && stName !== c.label) ? stName : c.label;
+    const d = [];
+    for (let y = 0; y <= yrs; y++) d.push(Math.round(p + rc * y));
+    allDatasets.push({ label: carName, data: d,
+      borderColor: extraColours[i] || '#aaa',
+      backgroundColor: extraColoursBg[i] || 'rgba(170,170,170,0.06)',
+      tension: 0.4, pointRadius: 0, borderWidth: 2.5, fill: true });
+  });
+
   if (chartInstance) chartInstance.destroy();
   chartInstance = new Chart(el('chart'), {
     type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: nA, data: dA, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)',  tension: 0.4, pointRadius: 0, borderWidth: 2.5, fill: true },
-        { label: nB, data: dB, borderColor: '#0ecfb0', backgroundColor: 'rgba(14,207,176,0.08)', tension: 0.4, pointRadius: 0, borderWidth: 2.5, fill: true }
-      ]
-    },
+    data: { labels, datasets: allDatasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -1203,7 +1249,7 @@ function compare() {
         tooltip: {
           backgroundColor: bgTip, borderColor: brTip, borderWidth: 1,
           titleColor: ttTip, bodyColor: bdTip,
-          callbacks: { label: c => ' $' + c.parsed.y.toLocaleString() }
+          callbacks: { label: c => ' ' + c.dataset.label + ': $' + c.parsed.y.toLocaleString() }
         }
       },
       scales: {
@@ -1212,6 +1258,30 @@ function compare() {
       }
     },
     plugins: [inlineLabelPlugin]
+  });
+
+  // Build interactive toggles below the chart
+  const toggleWrap = document.getElementById('chart-toggles') || (() => {
+    const d = document.createElement('div');
+    d.id = 'chart-toggles';
+    d.className = 'chart-toggles';
+    el('chart').parentNode.insertAdjacentElement('afterend', d);
+    return d;
+  })();
+  toggleWrap.innerHTML = allDatasets.map((ds, i) =>
+    '<button class="chart-toggle-btn active" data-idx="' + i + '" style="--tc:' + ds.borderColor + '">' +
+      '<span class="ct-swatch" style="background:' + ds.borderColor + '"></span>' +
+      '<span class="ct-name">' + ds.label + '</span>' +
+    '</button>'
+  ).join('');
+  toggleWrap.querySelectorAll('.chart-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      const meta = chartInstance.getDatasetMeta(idx);
+      meta.hidden = !meta.hidden;
+      btn.classList.toggle('active', !meta.hidden);
+      chartInstance.update();
+    });
   });
 
   // Summary metrics with animation
