@@ -788,6 +788,13 @@ function addExtraCar() {
           '</a>' +
         '</div>' +
       '</div>' +
+      '<a class="carjam-link hidden" id="' + id + '-carjam" href="#" target="_blank" rel="noopener">' +
+        '<span class="carjam-logo">CJ</span> Get full Carjam report ↗' +
+      '</a>' +
+      '<div class="insurance-section" id="' + id + '-insurance" style="display:none">' +
+        '<div class="ins-label">♡ GET AN INSURANCE QUOTE FOR THIS CAR</div>' +
+        '<div class="ins-links" id="' + id + '-ins-links"></div>' +
+      '</div>' +
     '</div>' +
     '<div class="ev-info-panel hidden" id="' + id + '-ev-panel">' +
       '<div class="ev-panel-header" id="' + id + '-ev-toggle">' +
@@ -886,49 +893,92 @@ function initCascadeForId(id) {
   if (resetBtn) resetBtn.addEventListener('click', () => cascadeReset(id));
 }
 
-async function lookupExtraPlate(id) {
+async function lookupExtraPlate(id, retryCount = 0) {
   const plate = el(id + '-plate-input').value.trim().toUpperCase().replace(/\s/g, '');
   if (!plate) return;
   const btn = el(id + '-lbtn');
-  btn.disabled = true; btn.textContent = '…';
+  btn.disabled = true; btn.textContent = retryCount > 0 ? 'Retrying…' : '…';
   const statusEl = el(id + '-status');
-  statusEl.textContent = 'Looking up ' + plate + '…';
+  statusEl.textContent = (retryCount > 0 ? 'Retrying ' : 'Looking up ') + plate + '…';
   statusEl.className = 'status-line s-load';
   hideBannerById(id);
   try {
     const res = await fetch('/api/lookup/' + encodeURIComponent(plate));
     const v = await res.json();
+    // Retry on cold-start errors
+    if (!res.ok && retryCount < 2 && [502, 503, 504].includes(res.status)) {
+      btn.disabled = false; btn.textContent = 'Look up';
+      setTimeout(() => lookupExtraPlate(id, retryCount + 1), 2500);
+      return;
+    }
     if (!res.ok) throw new Error(v.error || 'Not found');
-    // Populate fields
+
+    // Update state — same structure as main cars so showBanner works
+    Object.assign(state[id], {
+      name:          v.name          || plate,
+      make:          v.make          || '',
+      model:         v.model         || '',
+      year:          v.year          || '',
+      submodel:      v.submodel      || '',
+      fuelType:      v.fuelType      || 'petrol',
+      co2:           v.co2           || 0,
+      co2Stars:      v.co2Stars      || null,
+      stars:         v.stars         || null,
+      safety:        v.safety        || null,
+      safetyTest:    v.safetyTest    || '',
+      seats:         v.seats         || null,
+      bodyType:      v.bodyType      || '',
+      trans:         v.trans         || '',
+      cc:            v.cc            || null,
+      power:         v.power         || null,
+      owners:        v.owners        || null,
+      origin:        v.origin        || null,
+      electricRange: v.electricRange || null,
+      yearlyCo2:     v.yearlyCo2     || null,
+      odometer:      v.odometer      || null,
+      notes:         v.notes         || '',
+      l100:          v.l100          || null,
+      kwh:           v.kwh           || null,
+    });
+
+    // Populate input fields
     el(id + '-fuel').value = v.fuelType || 'petrol';
     updateFuelUI(id);
-    if (v.adjustedPrice || v.price) el(id + '-price').value = v.adjustedPrice || v.price;
     if (v.l100) el(id + '-l100').value = v.l100;
     if (v.kwh)  el(id + '-kwh').value  = v.kwh;
-    // Show banner
-    const nameEl = el(id + '-vname');
-    const metaEl = el(id + '-vmeta');
-    const tagsEl = el(id + '-vtags');
-    const bannerEl = el(id + '-banner');
-    if (nameEl) nameEl.textContent = v.name || plate;
-    if (metaEl) metaEl.textContent = [v.bodyType, v.trans, v.seats ? v.seats+' seats' : '', v.odometer ? parseInt(v.odometer).toLocaleString()+' km' : ''].filter(Boolean).join(' · ');
-    if (tagsEl) {
-      const fuelTagMap = { petrol:'tag-petrol', diesel:'tag-diesel', ev:'tag-ev', hybrid:'tag-hybrid', phev:'tag-phev' };
-      const fuelLblMap = { petrol:'Petrol', diesel:'Diesel', ev:'Electric', hybrid:'Hybrid', phev:'PHEV' };
-      const ft = v.fuelType || 'petrol';
-      const co2 = v.co2 || 0;
-      const co2cls = co2 === 0 ? 'tag-co2-zero' : co2 < 120 ? 'tag-co2-low' : co2 < 180 ? 'tag-co2-mid' : 'tag-co2-high';
-      tagsEl.innerHTML = '<span class="tag ' + (fuelTagMap[ft]||'') + '">' + (fuelLblMap[ft]||ft) + '</span>' +
-        '<span class="tag ' + co2cls + '">' + (co2 === 0 ? 'Zero emissions' : co2+' g/km CO₂') + '</span>';
-    }
-    if (bannerEl) bannerEl.classList.add('show');
-    // Price source
-    if (v.adjustedPrice && v.odometer) {
+
+    // Price
+    const price = v.adjustedPrice || v.price;
+    if (price) {
+      el(id + '-price').value = price;
       const psSrc = el(id + '-price-source');
-      if (psSrc) { psSrc.textContent = '✓ Adjusted for ' + parseInt(v.odometer).toLocaleString() + ' km'; psSrc.className = 'price-source ps-found'; }
-    } else if (v.price) {
-      setPriceSource(id, true);
+      if (psSrc) {
+        if (v.adjustedPrice && v.odometer) {
+          psSrc.textContent = '✓ Adjusted for ' + parseInt(v.odometer).toLocaleString() + ' km';
+          psSrc.className = 'price-source ps-found';
+        } else {
+          setPriceSource(id, true);
+        }
+      }
+    } else {
+      setPriceSource(id, false);
     }
+
+    // Carjam affiliate link
+    const cjEl = el(id + '-carjam');
+    if (cjEl) {
+      cjEl.href = 'https://www.carjam.co.nz/?partner=nzcarcompare&plate=' + encodeURIComponent(plate);
+      cjEl.classList.remove('hidden');
+      cjEl.onclick = () => {
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'carjam_affiliate_click', { event_category: 'affiliate', event_label: 'carjam_report', plate, car_position: id });
+        }
+      };
+    }
+
+    // Use the same showBanner as Car A and B — full details, tags, Trade Me link, insurance
+    showBanner(id, state[id]);
+    buildInsuranceLinks(id, v.make || '', v.model || '', String(v.year || ''));
     statusEl.textContent = '✓ Found'; statusEl.className = 'status-line s-ok';
   } catch(e) {
     statusEl.textContent = '✗ ' + e.message; statusEl.className = 'status-line s-err';
@@ -968,7 +1018,8 @@ function renderMultiResults(yrs, km, pA, rA, pB, rB) {
     ...extraCars.map(c => {
       const rc = runningCostById(c.id);
       const p  = val(c.id+'-price');
-      return { label: c.label, total: Math.round(p+rc*yrs), annual: Math.round(rc), price: p, colour: c.colour };
+      const sn = state[c.id] && state[c.id].name && state[c.id].name !== c.label ? state[c.id].name.trim() : c.label;
+      return { label: sn, total: Math.round(p+rc*yrs), annual: Math.round(rc), price: p, colour: c.colour };
     })
   ];
   if (allCars.length <= 2) { const s=document.getElementById('multi-results-section'); if(s) s.remove(); return; }
