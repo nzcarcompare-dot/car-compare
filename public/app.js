@@ -738,17 +738,18 @@ function addExtraCar() {
         '<div class="car-pill" style="background:' + col + '18;color:' + col + ';border:1px solid ' + col + '44">⬤ ' + lbl + '</div>' +
         '<button class="remove-car-btn" data-id="' + id + '">✕ Remove</button>' +
       '</div>' +
-      // Mode toggle
       '<div class="mode-toggle" style="margin-bottom:10px">' +
         '<button class="mode-btn active" data-car="' + id + '" data-mode="plate">Enter plate</button>' +
         '<button class="mode-btn" data-car="' + id + '" data-mode="browse">Pick from list</button>' +
       '</div>' +
-      // Plate panel
       '<div class="search-panel active" id="' + id + '-plate">' +
         '<div class="plate-row">' +
           '<input class="plate-input" id="' + id + '-plate-input" placeholder="ABC123" maxlength="8" autocomplete="off">' +
           '<button class="action-btn" id="' + id + '-lbtn" style="background:' + col + '18;color:' + col + '">Look up</button>' +
         '</div>' +
+        '<a class="carjam-link hidden" id="' + id + '-carjam" href="#" target="_blank" rel="noopener">' +
+          '<span class="carjam-logo">CJ</span> Get full Carjam report ↗' +
+        '</a>' +
       '</div>' +
       // Browse panel (cascade)
       '<div class="search-panel" id="' + id + '-browse">' +
@@ -787,15 +788,13 @@ function addExtraCar() {
             '<span class="tm-dot"></span>Search similar on Trade Me ↗' +
           '</a>' +
         '</div>' +
+        '<div class="insurance-section" id="' + id + '-insurance" style="display:none">' +
+          '<div class="insurance-label">🛡 Get an insurance quote for this car</div>' +
+          '<div class="insurance-btns">' +
+            '<a class="insurance-btn" id="' + id + '-ins-quashed" href="#" target="_blank" rel="noopener"><span class="ins-icon">🔍</span> Quashed</a>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
-      '<a class="carjam-link hidden" id="' + id + '-carjam" href="#" target="_blank" rel="noopener">' +
-        '<span class="carjam-logo">CJ</span> Get full Carjam report ↗' +
-      '</a>' +
-      '<div class="insurance-section" id="' + id + '-insurance" style="display:none">' +
-        '<div class="ins-label">♡ GET AN INSURANCE QUOTE FOR THIS CAR</div>' +
-        '<div class="ins-links" id="' + id + '-ins-links"></div>' +
-      '</div>' +
-    '</div>' +
     '<div class="ev-info-panel hidden" id="' + id + '-ev-panel">' +
       '<div class="ev-panel-header" id="' + id + '-ev-toggle">' +
         '<span class="ev-panel-icon">⚡</span>' +
@@ -1352,23 +1351,40 @@ function compare() {
   el('sm-total-label').textContent = 'Best total over ' + yrs + ' yrs';
   el('sm-total-sub').textContent   = (aWins ? nA : nB) + ' wins';
 
-  // Cost breakdown table
+  // Cost breakdown table — includes extra cars
   const mid  = Math.round(yrs / 2);
-  const cAm  = Math.round(pA + rA * mid), cBm = Math.round(pB + rB * mid);
-  const aWm  = cAm <= cBm;
-  const row  = (label, a, b, winA, winB) =>
-    `<tr><td>${label}</td><td class="${winA ? 'win-a' : ''}">${a}</td><td class="${winB ? 'win-b' : ''}">${b}</td></tr>`;
+  // Build array of all cars for multi-column tables
+  const allCarsData = [
+    { name: nA, price: pA, rc: rA, colour: '#3b82f6' },
+    { name: nB, price: pB, rc: rB, colour: '#0ecfb0' },
+    ...extraCars.map((c, i) => {
+      const rc = runningCostById(c.id);
+      const p  = val(c.id + '-price');
+      const sn = state[c.id] && state[c.id].name && state[c.id].name !== c.label ? state[c.id].name.trim() : c.label;
+      return { name: sn, price: p, rc, colour: ['#c084fc','#f59e0b','#f87171'][i] || '#aaa', id: c.id };
+    })
+  ];
+  const minTotal = Math.min(...allCarsData.map(c => c.price + c.rc * yrs));
+  const colHdr = allCarsData.map(c => `<th style="color:${c.colour}">${c.name.length>16?c.name.slice(0,14)+'…':c.name}</th>`).join('');
+  const colRow = (label, vals) =>
+    `<tr><td>${label}</td>${vals.map((v,i) => `<td>${v}</td>`).join('')}</tr>`;
+  const colRowWin = (label, vals, lowerBetter=true) => {
+    const nums = vals.map(v => parseFloat(String(v).replace(/[^0-9.]/g,'')));
+    const best = lowerBetter ? Math.min(...nums.filter(n=>!isNaN(n))) : Math.max(...nums.filter(n=>!isNaN(n)));
+    return `<tr><td>${label}</td>${vals.map((v,i) => `<td class="${nums[i]===best?'win-a':''}">${v}</td>`).join('')}</tr>`;
+  };
 
   el('cost-table').innerHTML =
-    `<tr><th>Item</th><th>${nA}</th><th>${nB}</th></tr>` +
-    row('Purchase price',       '$' + pA.toLocaleString(), '$' + pB.toLocaleString(), false, false) +
-    row('Running cost / yr',   '$' + Math.round(rA).toLocaleString(), '$' + Math.round(rB).toLocaleString(), rA < rB, rB < rA) +
-    row('Running × ' + mid  + ' yrs', '$' + Math.round(rA * mid).toLocaleString(),  '$' + Math.round(rB * mid).toLocaleString(),  false, false) +
-    row('Running × ' + yrs  + ' yrs', '$' + Math.round(rA * yrs).toLocaleString(),  '$' + Math.round(rB * yrs).toLocaleString(),  false, false) +
-    `<tr class="total-row"><td><strong>Total over ${yrs} yrs</strong></td>
-      <td class="${aWm ? 'win-a' : ''}">$${Math.round(pA + rA * yrs).toLocaleString()}</td>
-      <td class="${!aWm ? 'win-b' : ''}">$${Math.round(pB + rB * yrs).toLocaleString()}</td>
-    </tr>`;
+    `<tr><th>Item</th>${colHdr}</tr>` +
+    colRow('Purchase price', allCarsData.map(c => '$' + c.price.toLocaleString())) +
+    colRowWin('Running cost / yr', allCarsData.map(c => '$' + Math.round(c.rc).toLocaleString())) +
+    colRow('Running × ' + mid + ' yrs', allCarsData.map(c => '$' + Math.round(c.rc * mid).toLocaleString())) +
+    colRow('Running × ' + yrs + ' yrs', allCarsData.map(c => '$' + Math.round(c.rc * yrs).toLocaleString())) +
+    `<tr class="total-row"><td><strong>Total over ${yrs} yrs</strong></td>` +
+    allCarsData.map(c => {
+      const t = c.price + c.rc * yrs;
+      return `<td class="${Math.round(t)===Math.round(minTotal)?'win-a':''}">$${Math.round(t).toLocaleString()}</td>`;
+    }).join('') + '</tr>';
 
   // CO2 + trees
   const co2A  = state.a.co2 || 0, co2B = state.b.co2 || 0;
@@ -1378,70 +1394,99 @@ function compare() {
   el('tree-km').textContent   = km.toLocaleString();
   el('tree-text').innerHTML   = treeFact(co2A, co2B, km);
 
-  el('co2-bars').innerHTML =
-    `<div class="co2-row">
-      <div class="co2-lbl">${nA}</div>
-      <div class="co2-track"><div class="co2-fill" style="width:${(co2A / maxCO2 * 100).toFixed(1)}%;background:#3b82f6">${co2A > 0 ? co2A + ' g/km' : ''}</div></div>
-      <div class="co2-val">${co2A === 0 ? 'Zero 🌱' : annA.toLocaleString() + ' kg/yr'}</div>
-    </div>
-    <div class="co2-row">
-      <div class="co2-lbl">${nB}</div>
-      <div class="co2-track"><div class="co2-fill" style="width:${(co2B / maxCO2 * 100).toFixed(1)}%;background:#0ecfb0">${co2B > 0 ? co2B + ' g/km' : ''}</div></div>
-      <div class="co2-val">${co2B === 0 ? 'Zero 🌱' : annB.toLocaleString() + ' kg/yr'}</div>
+  // Build CO2 bars for all cars
+  const allCO2 = [
+    { name: nA, co2: co2A, colour: '#3b82f6' },
+    { name: nB, co2: co2B, colour: '#0ecfb0' },
+    ...extraCars.map((c, i) => {
+      const sn = state[c.id] && state[c.id].name && state[c.id].name !== c.label ? state[c.id].name.trim() : c.label;
+      return { name: sn, co2: state[c.id] ? (state[c.id].co2 || 0) : 0, colour: ['#c084fc','#f59e0b','#f87171'][i] || '#aaa' };
+    })
+  ];
+  const maxCO2all = Math.max(...allCO2.map(c => c.co2), 1);
+
+  el('co2-bars').innerHTML = allCO2.map(c => {
+    const ann = Math.round(c.co2 * km / 1000);
+    return `<div class="co2-row">
+      <div class="co2-lbl">${c.name.length>18?c.name.slice(0,16)+'…':c.name}</div>
+      <div class="co2-track"><div class="co2-fill" style="width:${(c.co2/maxCO2all*100).toFixed(1)}%;background:${c.colour}">${c.co2>0?c.co2+' g/km':''}</div></div>
+      <div class="co2-val">${c.co2===0?'Zero 🌱':ann.toLocaleString()+' kg/yr'}</div>
     </div>`;
+  }).join('');
 
-  // Full comparison table
-  const r2  = (l, a, b)  => `<tr><td>${l}</td><td>${a}</td><td>${b}</td></tr>`;
-  const cat = l           => `<tr class="cat-hd"><td colspan="3">${l}</td></tr>`;
-  const st  = (n, max)    => n ? Array.from({ length: max }, (_, i) => i < n ? '★' : '☆').join('') + ' ' + n + '/' + max : '—';
+  // Full comparison table — dynamic columns for all cars
+  const allStates = [state.a, state.b, ...extraCars.map(c => state[c.id] || {})];
+  const allNames  = [nA, nB, ...extraCars.map(c => {
+    const sn = state[c.id] && state[c.id].name && state[c.id].name !== c.label ? state[c.id].name.trim() : c.label;
+    return sn;
+  })];
+  const allRC  = [rA, rB, ...extraCars.map(c => runningCostById(c.id))];
+  const allP   = [pA, pB, ...extraCars.map(c => val(c.id + '-price'))];
+  const nCols  = allStates.length;
+  const allColours = ['#3b82f6','#0ecfb0','#c084fc','#f59e0b','#f87171'];
 
-  // Helper to highlight the better value in green
-  const better = (aVal, bVal, lowerIsBetter=true) => {
-    if (!aVal || !bVal || aVal === '—' || bVal === '—') return ['',''];
-    const aN = parseFloat(String(aVal).replace(/[^0-9.]/g,'')),
-          bN = parseFloat(String(bVal).replace(/[^0-9.]/g,''));
-    if (isNaN(aN) || isNaN(bN) || aN === bN) return ['',''];
-    const aWins = lowerIsBetter ? aN < bN : aN > bN;
-    return aWins ? ['win-a',''] : ['','win-b'];
+  const cat = l => `<tr class="cat-hd"><td colspan="${nCols + 1}">${l}</td></tr>`;
+  const st  = (n, max) => n ? Array.from({ length: max }, (_, i) => i < n ? '★' : '☆').join('') + ' ' + n + '/' + max : '—';
+
+  const rN = (label, vals, lowerBetter=null) => {
+    const nums = vals.map(v => parseFloat(String(v).replace(/[^0-9.]/g,'')));
+    const best = lowerBetter === null ? null :
+      lowerBetter ? Math.min(...nums.filter(n=>!isNaN(n))) : Math.max(...nums.filter(n=>!isNaN(n)));
+    const cells = vals.map((v,i) => `<td class="${best!==null&&nums[i]===best?'win-a':''}">${v}</td>`).join('');
+    return `<tr><td>${label}</td>${cells}</tr>`;
   };
 
-  el('detail-table').innerHTML =
-    `<tr><th>Specification</th><th>${nA}</th><th>${nB}</th></tr>` +
+  const hdr = `<tr><th>Specification</th>${allNames.map((n,i) =>
+    `<th style="color:${allColours[i]}">${n.length>14?n.slice(0,12)+'…':n}</th>`).join('')}</tr>`;
+
+  el('detail-table').innerHTML = hdr +
 
     cat('🚗 Vehicle details') +
-    r2('Make',            state.a.make     || '—', state.b.make     || '—') +
-    r2('Model',           state.a.model    || '—', state.b.model    || '—') +
-    r2('Variant',         state.a.submodel || '—', state.b.submodel || '—') +
-    r2('Year',            state.a.year     || '—', state.b.year     || '—') +
-    r2('Body type',       state.a.bodyType || '—', state.b.bodyType || '—') +
-    r2('Seats',           state.a.seats    || '—', state.b.seats    || '—') +
-    r2('Transmission',    state.a.trans    || '—', state.b.trans    || '—') +
-    r2('Engine size',     state.a.cc  ? state.a.cc  + 'cc' : '—', state.b.cc  ? state.b.cc  + 'cc' : '—') +
-    r2('Power output',    state.a.power || '—', state.b.power || '—') +
-    r2('Country of origin',state.a.origin || '—', state.b.origin || '—') +
-    r2('Previous owners', state.a.owners || '—', state.b.owners || '—') +
+    rN('Make',             allStates.map(s => s.make     || '—')) +
+    rN('Model',            allStates.map(s => s.model    || '—')) +
+    rN('Variant',          allStates.map(s => s.submodel || '—')) +
+    rN('Year',             allStates.map(s => s.year     || '—')) +
+    rN('Body type',        allStates.map(s => s.bodyType || '—')) +
+    rN('Seats',            allStates.map(s => s.seats    || '—'), false) +
+    rN('Transmission',     allStates.map(s => s.trans    || '—')) +
+    rN('Engine size',      allStates.map(s => s.cc  ? s.cc + 'cc' : '—')) +
+    rN('Power output',     allStates.map(s => s.power    || '—')) +
+    rN('Country of origin',allStates.map(s => s.origin   || '—')) +
+    rN('Previous owners',  allStates.map(s => s.owners   || '—'), true) +
 
     cat('⛽ Economy & environment') +
-    r2('Fuel type',            state.a.fuelType, state.b.fuelType) +
-    (() => { const [wa,wb]=better(val('a-l100')||null,val('b-l100')||null,true); return `<tr><td>Fuel consumption</td><td class="${wa}">${val('a-l100')>0?val('a-l100').toFixed(1)+' L/100km':'—'}</td><td class="${wb}">${val('b-l100')>0?val('b-l100').toFixed(1)+' L/100km':'—'}</td></tr>`; })() +
-    (() => { const [wa,wb]=better(val('a-kwh')||null,val('b-kwh')||null,true); return `<tr><td>Electric consumption</td><td class="${wa}">${val('a-kwh')>0?val('a-kwh')+' kWh/100km':'—'}</td><td class="${wb}">${val('b-kwh')>0?val('b-kwh')+' kWh/100km':'—'}</td></tr>`; })() +
-    r2('Electric range',       state.a.electricRange ? state.a.electricRange+'km' : '—', state.b.electricRange ? state.b.electricRange+'km' : '—') +
-    (() => { const [wa,wb]=better(co2A||null,co2B||null,true); return `<tr><td>CO₂ (tailpipe)</td><td class="${wa}">${co2A===0?'Zero 🌱':co2A+' g/km'}</td><td class="${wb}">${co2B===0?'Zero 🌱':co2B+' g/km'}</td></tr>`; })() +
-    (() => { const [wa,wb]=better(annA||null,annB||null,true); return `<tr><td>Annual CO₂</td><td class="${wa}">${co2A===0?'Zero':annA.toLocaleString()+' kg'}</td><td class="${wb}">${co2B===0?'Zero':annB.toLocaleString()+' kg'}</td></tr>`; })() +
-    r2('Annual CO₂ (tonnes)',  state.a.yearlyCo2 ? state.a.yearlyCo2+'t' : '—', state.b.yearlyCo2 ? state.b.yearlyCo2+'t' : '—') +
-    (() => { const [wa,wb]=better(state.a.stars||null,state.b.stars||null,false); return `<tr><td>Economy rating</td><td class="${wa}">${st(state.a.stars,6)}</td><td class="${wb}">${st(state.b.stars,6)}</td></tr>`; })() +
-    (() => { const [wa,wb]=better(state.a.co2Stars||null,state.b.co2Stars||null,false); return `<tr><td>CO₂ rating</td><td class="${wa}">${st(state.a.co2Stars,6)}</td><td class="${wb}">${st(state.b.co2Stars,6)}</td></tr>`; })() +
+    rN('Fuel type',        allStates.map(s => s.fuelType || '—')) +
+    rN('Fuel consumption', allStates.map((s,i) => {
+      const id = i===0?'a':i===1?'b':(extraCars[i-2]||{}).id;
+      const v = id ? val(id+'-l100') : 0;
+      return v > 0 ? v.toFixed(1)+' L/100km' : '—';
+    }), true) +
+    rN('Electric use',     allStates.map((s,i) => {
+      const id = i===0?'a':i===1?'b':(extraCars[i-2]||{}).id;
+      const v = id ? val(id+'-kwh') : 0;
+      return v > 0 ? v+' kWh/100km' : '—';
+    }), true) +
+    rN('Electric range',   allStates.map(s => s.electricRange ? s.electricRange+'km' : '—'), false) +
+    rN('CO₂ (tailpipe)',   allStates.map(s => (s.co2||0)===0?'Zero 🌱':(s.co2||0)+' g/km'), true) +
+    rN('Annual CO₂',       allStates.map(s => (s.co2||0)===0?'Zero':Math.round((s.co2||0)*km/1000).toLocaleString()+' kg'), true) +
+    rN('Economy rating',   allStates.map(s => st(s.stars,6)), false) +
+    rN('CO₂ rating',       allStates.map(s => st(s.co2Stars,6)), false) +
 
     cat('🛡 Safety') +
-    (() => { const [wa,wb]=better(state.a.safety||null,state.b.safety||null,false); return `<tr><td>Safety rating (ANCAP)</td><td class="${wa}">${st(state.a.safety,5)}</td><td class="${wb}">${st(state.b.safety,5)}</td></tr>`; })() +
-    r2('Safety test basis',   state.a.safetyTest ? `<span style="font-size:11px">${state.a.safetyTest}</span>` : '—', state.b.safetyTest ? `<span style="font-size:11px">${state.b.safetyTest}</span>` : '—') +
+    rN('Safety rating',    allStates.map(s => st(s.safety,5)), false) +
+    rN('Safety test basis',allStates.map(s => s.safetyTest ? `<span style="font-size:11px">${s.safetyTest}</span>` : '—')) +
 
     cat('💰 Costs at ' + km.toLocaleString() + ' km/yr') +
-    r2('Purchase price',    '$' + pA.toLocaleString(), '$' + pB.toLocaleString()) +
-    (() => { const [wa,wb]=better(rA,rB,true); return `<tr><td>Annual running cost</td><td class="${wa}">$${Math.round(rA).toLocaleString()}</td><td class="${wb}">$${Math.round(rB).toLocaleString()}</td></tr>`; })() +
-    (() => { const [wa,wb]=better(rA/km*100,rB/km*100,true); return `<tr><td>Cost per 100km</td><td class="${wa}">$${(rA/km*100).toFixed(2)}</td><td class="${wb}">$${(rB/km*100).toFixed(2)}</td></tr>`; })() +
-    (() => { const tA=Math.round(pA+rA*5),tB=Math.round(pB+rB*5); const [wa,wb]=better(tA,tB,true); return `<tr><td>5-year total</td><td class="${wa}">$${tA.toLocaleString()}</td><td class="${wb}">$${tB.toLocaleString()}</td></tr>`; })() +
-    (() => { const tA=Math.round(pA+rA*yrs),tB=Math.round(pB+rB*yrs); const [wa,wb]=better(tA,tB,true); return `<tr class="total-row"><td>${yrs}-year total</td><td class="${wa}">$${tA.toLocaleString()}</td><td class="${wb}">$${tB.toLocaleString()}</td></tr>`; })();
+    rN('Purchase price',   allP.map(p => '$'+Math.round(p).toLocaleString())) +
+    rN('Annual running',   allRC.map(r => '$'+Math.round(r).toLocaleString()), true) +
+    rN('Cost per 100km',   allRC.map((r,i) => '$'+(r/km*100).toFixed(2)), true) +
+    rN('5-year total',     allStates.map((_,i) => '$'+Math.round(allP[i]+allRC[i]*5).toLocaleString()), true) +
+    `<tr class="total-row"><td>${yrs}-year total</td>` +
+    allStates.map((_,i) => {
+      const t = Math.round(allP[i]+allRC[i]*yrs);
+      const best = Math.min(...allStates.map((_,j) => Math.round(allP[j]+allRC[j]*yrs)));
+      return `<td class="${t===best?'win-a':''}" style="font-weight:700">$${t.toLocaleString()}</td>`;
+    }).join('') + '</tr>';
 
   // Reveal results with animation
   const resultsEl = el('results');
