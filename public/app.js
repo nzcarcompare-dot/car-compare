@@ -429,6 +429,17 @@ async function lookupPlate(car, retryCount = 0) {
     if (carjamLink) {
       carjamLink.href = 'https://www.carjam.co.nz/?partner=nzcarcompare&plate=' + encodeURIComponent(plate);
       carjamLink.classList.remove('hidden');
+      // Track affiliate link clicks in GA4
+      carjamLink.onclick = () => {
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'carjam_affiliate_click', {
+            event_category: 'affiliate',
+            event_label: 'carjam_report',
+            plate: plate,
+            car_position: car,
+          });
+        }
+      };
     }
 
   } catch (e) {
@@ -1471,4 +1482,35 @@ async function init() {
 }
 
 init();
+
+// Track footer Carjam affiliate link clicks
+document.querySelectorAll('a[href*="partner=nzcarcompare"]').forEach(link => {
+  link.addEventListener('click', () => {
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'carjam_affiliate_click', {
+        event_category: 'affiliate',
+        event_label: 'footer_link',
+        link_location: 'footer',
+      });
+    }
+  });
+});
+
+// Track compare button clicks
+const compareBtn = el('compare-btn');
+if (compareBtn) {
+  compareBtn.addEventListener('click', () => {
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'compare', {
+        event_category: 'engagement',
+        car_a_fuel: el('a-fuel') ? el('a-fuel').value : '',
+        car_b_fuel: el('b-fuel') ? el('b-fuel').value : '',
+        extra_cars: extraCars.length,
+      });
+    }
+  }, { capture: true }); // capture so it fires before compare() runs
+}
+
+// Track plate lookups
+const origLookup = lookupPlate;
 
