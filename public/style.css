@@ -871,3 +871,13 @@ footer {
   width: 10px; height: 10px;
   border-radius: 50%; flex-shrink: 0;
 }
+
+/* ── EV guide nudge ──────────────────────────────────────────────────────────── */
+.ev-guide-nudge {
+  font-size: 11px; color: var(--tx-3);
+  margin: -2px 0 8px; padding: 0 2px;
+}
+.ev-guide-nudge a {
+  color: #0ecfb0; text-decoration: none; font-weight: 600;
+}
+.ev-guide-nudge a:hover { text-decoration: underline; }

@@ -657,11 +657,7 @@ function updateFuelUI(car) {
   if (liq)  liq.classList.toggle('show',  ['petrol','diesel','hybrid'].includes(f));
   if (elec) elec.classList.toggle('show', f === 'ev');
   if (phev) phev.classList.toggle('show', f === 'phev');
-  // Show/hide EV info panel for main cards only
-  if (car === 'a' || car === 'b') {
-    const panel = el(car + '-ev-panel');
-    if (panel) panel.classList.toggle('hidden', f !== 'ev' && f !== 'phev');
-  }
+
 }
 el('a-fuel').addEventListener('change', () => updateFuelUI('a'));
 el('b-fuel').addEventListener('change', () => updateFuelUI('b'));

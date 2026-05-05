@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EV Buyer's Guide — NZ Car Compare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .legal-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
+    .legal-back { display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--tx-2);text-decoration:none;margin-bottom:32px;transition:color .15s; }
+    .legal-back:hover { color:var(--teal); }
+    .legal-title { font-family:'DM Serif Display',serif;font-size:36px;color:var(--tx-1);margin-bottom:8px; }
+    .legal-date { font-size:13px;color:var(--tx-2);margin-bottom:40px;padding-bottom:24px;border-bottom:1px solid var(--border); }
+    .legal-body h2 { font-size:17px;font-weight:700;color:var(--tx-1);margin:32px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border); }
+    .legal-body p { font-size:14px;color:var(--tx-2);line-height:1.8;margin-bottom:14px; }
+    .legal-body ul { font-size:14px;color:var(--tx-2);line-height:1.8;margin:0 0 14px 20px; }
+    .legal-body ul li { margin-bottom:6px; }
+    .legal-body a { color:var(--teal);text-decoration:none; }
+    .legal-body a:hover { text-decoration:underline; }
+    .highlight-box { background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin:20px 0; }
+    .highlight-box p { margin-bottom:0;color:var(--tx-1); }
+    .warning-box { background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:16px 20px;margin:20px 0; }
+    .warning-box p { margin-bottom:0;color:var(--tx-1); }
+    .data-table { width:100%;border-collapse:collapse;font-size:13px;margin:12px 0 20px; }
+    .data-table th { text-align:left;padding:8px 12px;background:var(--bg-3);border:1px solid var(--border);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tx-2); }
+    .data-table td { padding:9px 12px;border:1px solid var(--border);color:var(--tx-2);vertical-align:top; }
+    .data-table tr:nth-child(even) td { background:var(--bg-3); }
+    .contact-card { background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:16px;display:flex;align-items:flex-start;gap:14px; }
+    .contact-icon { font-size:24px;flex-shrink:0;margin-top:2px; }
+    .contact-label { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx-2);margin-bottom:5px; }
+    .contact-value { font-size:15px;font-weight:600;color:var(--tx-1);margin-bottom:4px; }
+    .contact-desc { font-size:13px;color:var(--tx-2);line-height:1.5; }
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-X23FLKCVWG"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-X23FLKCVWG');</script>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <div class="logo-mark" aria-hidden="true">
+        <svg width="52" height="28" viewBox="0 0 52 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g transform="translate(18,3)"><rect x="2" y="7" width="28" height="12" rx="3" fill="#0ecfb0" opacity=".55"/><path d="M6 7 L9 2 L23 2 L26 7 Z" fill="#0ecfb0" opacity=".55"/><circle cx="7" cy="19" r="3.2" fill="#0a3d33" opacity=".7"/><circle cx="7" cy="19" r="1.6" fill="#0ecfb0" opacity=".5"/><circle cx="23" cy="19" r="3.2" fill="#0a3d33" opacity=".7"/><circle cx="23" cy="19" r="1.6" fill="#0ecfb0" opacity=".5"/></g>
+          <g transform="translate(0,5)"><rect x="2" y="7" width="28" height="12" rx="3" fill="#3b82f6"/><path d="M6 7 L9 2 L23 2 L26 7 Z" fill="#60a5fa"/><rect x="9.5" y="2.8" width="12" height="4" rx="1" fill="#bfdbfe" opacity=".6"/><circle cx="7" cy="19" r="3.2" fill="#1e3a5f"/><circle cx="7" cy="19" r="1.6" fill="#93c5fd"/><circle cx="23" cy="19" r="3.2" fill="#1e3a5f"/><circle cx="23" cy="19" r="1.6" fill="#93c5fd"/><rect x="2" y="10" width="3" height="2" rx="1" fill="#fde68a"/><rect x="27" y="10" width="2" height="2" rx="1" fill="#f87171" opacity=".8"/></g>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">NZ Car <span>Compare</span></div>
+        <div class="logo-sub">True cost of car ownership</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="theme-label" id="theme-label">Dark</span>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
+    </div>
+  </header>
+
+    <div class="legal-wrap" style="max-width:780px">
+    <a href="/" class="legal-back">← Back to NZ Car Compare</a>
+    <h1 class="legal-title">EV Buyer's Guide</h1>
+    <div class="legal-date">For New Zealand buyers · Updated April 2026</div>
+
+    <div class="legal-body">
+
+      <div class="highlight-box">
+        <p>Thinking about switching to an EV? New Zealand is one of the best countries in the world for EV ownership — over 80% of our electricity comes from renewables, and the charging network is growing fast. EV registrations were up 96% in early 2026 versus the same period in 2025. This guide answers the questions we hear most often.</p>
+      </div>
+
+      <div class="ev-links" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px">
+        <a class="ev-link-btn" href="https://www.genless.govt.nz/for-everyone/on-the-move/electric-vehicles/" target="_blank" rel="noopener">⚡ EECA EV Guide</a>
+        <a class="ev-link-btn" href="https://www.chargenet.nz/map" target="_blank" rel="noopener">🗺 ChargeNet Map</a>
+        <a class="ev-link-btn" href="https://www.plugshare.com/" target="_blank" rel="noopener">🔌 PlugShare</a>
+        <a class="ev-link-btn" href="https://www.nzta.govt.nz/vehicles/road-user-charges/" target="_blank" rel="noopener">📋 NZTA RUC Rates</a>
+        <a class="ev-link-btn" href="https://rightcar.govt.nz" target="_blank" rel="noopener">📊 RightCar</a>
+      </div>
+
+      <h2>Do I need special equipment at home?</h2>
+      <p>Every EV comes with a standard portable charger (a trickle charger) that plugs into a regular 3-pin wall socket — roughly 10–15km of range per hour of charging. That's enough for most daily driving if you plug in overnight.</p>
+      <p>For faster charging, a dedicated wallbox installed by a licensed electrician is the way to go. A 7kW wallbox charges most EVs from near-empty to full overnight. Cost: around $800–$1,500 installed. EECA maintains an <a href="https://www.eeca.govt.nz/regulations/voluntary-guidance/ev-smart-charger-approved-list/" target="_blank" rel="noopener">approved list of smart home chargers</a> that can be scheduled to charge during off-peak hours when electricity is cheapest — equivalent to roughly $1.60/litre of petrol including road user charges.</p>
+
+      <h2>What if I live in an apartment or rental?</h2>
+      <p>This is the biggest real-world challenge. Without home charging you'll rely on public chargers, which is workable in cities but adds friction. Before buying, check with your body corporate or landlord. New rules from 2026 removed planning barriers to EV charger installation in apartment buildings, making approvals easier to get. If you're a renter, have the conversation before committing.</p>
+
+      <h2>Where do I find public charging stations?</h2>
+      <p>Two tools cover NZ comprehensively. <a href="https://www.plugshare.com/" target="_blank" rel="noopener">PlugShare</a> is community-sourced and shows all charger types with real-time availability — the most complete map for NZ. <a href="https://www.chargenet.nz/map" target="_blank" rel="noopener">ChargeNet</a> is NZ's largest fast-charging network, with stations along most main highways.</p>
+      <p>As of 2026, NZ has around 1,800 public charge points. The government has committed to 10,000 by 2030, backed by $52.7 million in investment alongside ChargeNet and Meridian.</p>
+
+      <h2>What happens if I run the battery to 0%?</h2>
+      <p>EVs don't let the battery reach true 0%. Every EV reserves a buffer — typically 5–10% of capacity — and shows warnings well before that point. You'll get a clear low-battery alert with time to find a charger. If you do run completely out (rare), roadside assistance will tow you to a charger. In practice, most EV owners charge at home nightly and never come close to empty.</p>
+
+      <h2>How does real-world range compare to the advertised figure?</h2>
+      <p>Expect 10–25% less than the WLTP-rated range in everyday driving. Motorway speeds, cold weather, heating the cabin, and NZ hills all reduce range (though regenerative braking recovers some energy on the way down). As a practical rule: if a car is rated 400km, plan around 300–340km between charges on a road trip.</p>
+
+      <h2>How much does charging actually cost?</h2>
+      <p>Home charging off-peak typically costs $0.12–$0.18/kWh. For an average EV using 17–20 kWh/100km, that's roughly $2–$3.60 per 100km — compared to $14–$18 per 100km for a petrol car at $2.80/L. Public DC fast chargers cost more (around $0.55–$0.65/kWh at ChargeNet), but are still cheaper than petrol per km.</p>
+      <p>Use the <a href="/">NZ Car Compare tool</a> to model your specific electricity rate and km/year for a personalised comparison.</p>
+
+      <h2>What about road user charges (RUC)?</h2>
+      <p>EVs and PHEVs pay road user charges instead of fuel excise duty. The current rate for light EVs is $76 per 1,000km. NZ Car Compare automatically includes RUC in all EV and PHEV calculations. <a href="https://www.nzta.govt.nz/vehicles/road-user-charges/" target="_blank" rel="noopener">Current rates are published by NZTA</a>.</p>
+
+      <h2>Battery longevity — will it last?</h2>
+      <p>Most manufacturers warrant the battery for 8 years or 160,000km at a minimum of 70% original capacity (Toyota warrants theirs for 10 years). Real-world data from high-mileage EVs suggests batteries degrade slower than warranties imply. To extend battery life: charge to 80% for daily use (only to 100% before long trips), and avoid letting the battery sit very low for extended periods.</p>
+
+      <h2>What about PHEVs?</h2>
+      <p>Plug-in hybrids have both a plug-in battery (typically 40–80km of electric range) and a petrol engine — a practical step for people with range anxiety or uncertain charging access. Economics depend on usage: charge regularly and do short trips mostly on electric and running costs approach a pure EV. Rarely charge and mostly use petrol and you'll get worse economy than a standard hybrid. NZ Car Compare lets you set a custom electric/petrol split to model your situation.</p>
+
+      <h2>Is NZ's grid clean enough?</h2>
+      <p>Yes — around 80–85% of NZ electricity comes from renewables (hydro, wind, geothermal). This means EVs in NZ produce 60–80% less lifetime CO₂ than equivalent petrol cars, even accounting for battery manufacturing. NZ is one of the best places in the world for the environmental case for EVs.</p>
+
+      <div class="highlight-box" style="margin-top:32px">
+        <p><strong>Ready to compare?</strong> Use the <a href="/">NZ Car Compare tool</a> to see a personalised cost comparison for any EV vs your current car — including fuel costs, road user charges, CO₂ emissions, and a break-even chart.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>NZ Car Compare</strong>
+        <span>Cost estimates are indicative only — always verify before making purchasing decisions.</span>
+      </div>
+      <div class="footer-links">
+        <a href="/ev-guide.html" class="footer-link">⚡ EV Guide</a>
+        <a href="/privacy.html" class="footer-link">Privacy Policy</a>
+        <a href="/terms.html" class="footer-link">Terms of Use</a>
+        <a href="/contact.html" class="footer-link">Contact</a>
+        <a href="https://rightcar.govt.nz" target="_blank" rel="noopener" class="footer-link">Economy data: RightCar</a>
+        <a href="https://www.nzta.govt.nz" target="_blank" rel="noopener" class="footer-link">RUC: NZTA</a>
+      </div>
+    </div>
+  </footer>
+  <script>
+    const toggle=document.getElementById('theme-toggle'),label=document.getElementById('theme-label'),html=document.documentElement,saved=localStorage.getItem('theme');
+    if(saved){{html.dataset.theme=saved;label.textContent=saved==='dark'?'Dark':'Light';}}
+    toggle.addEventListener('click',()=>{{const dark=html.dataset.theme==='dark';html.dataset.theme=dark?'light':'dark';label.textContent=dark?'Light':'Dark';localStorage.setItem('theme',dark?'light':'dark');}});
+  </script>
+</body>
+</html>
