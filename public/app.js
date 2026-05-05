@@ -1120,23 +1120,39 @@ function animateCounter(elem, target) {
 }
 
 /* ── Tree fact ─────────────────────────────────────────────────────────────── */
-function treeFact(co2A, co2B, km) {
+function treeFact(_co2A, _co2B, km) {
+  // Dynamic version — reads all cars including extras
   const KG_PER_TREE = 21;
-  const diffKg = Math.abs(co2A - co2B) * km / 1000;
-  const trees  = Math.round(diffKg / KG_PER_TREE);
-  const loName = co2A <= co2B ? state.a.name : state.b.name;
-  const hiName = co2A <= co2B ? state.b.name : state.a.name;
+  const allCO2vals = [
+    { name: state.a.name || 'Car A', co2: state.a.co2 || 0 },
+    { name: state.b.name || 'Car B', co2: state.b.co2 || 0 },
+    ...extraCars.map(c => {
+      const sn = state[c.id] && state[c.id].name && state[c.id].name !== c.label ? state[c.id].name.trim() : c.label;
+      return { name: sn, co2: state[c.id] ? (state[c.id].co2 || 0) : 0 };
+    })
+  ];
+  const allZero   = allCO2vals.every(c => c.co2 === 0);
+  const nonZero   = allCO2vals.filter(c => c.co2 > 0);
+  const zeroCount = allCO2vals.length - nonZero.length;
 
-  if (Math.max(co2A, co2B) === 0) {
-    return '<span class="tree-num">Both zero! 🎉</span>Both vehicles produce zero tailpipe emissions.';
+  if (allZero) {
+    const label = allCO2vals.length > 2 ? 'All vehicles' : 'Both vehicles';
+    return '<span class="tree-num">All zero! 🎉</span>' + label + ' produce zero tailpipe emissions.';
   }
+
+  const sorted    = allCO2vals.slice().sort((a, b) => a.co2 - b.co2);
+  const lowest    = sorted[0];
+  const highest   = sorted[sorted.length - 1];
+  const diffKg    = (highest.co2 - lowest.co2) * km / 1000;
+  const trees     = Math.round(diffKg / KG_PER_TREE);
+
   if (trees === 0) {
-    return 'These vehicles have very similar CO₂ emissions — less than one tree\'s worth of difference per year.';
+    return 'All ' + allCO2vals.length + ' vehicles have very similar CO₂ emissions — less than one tree\'s worth of difference per year.';
   }
-  if (Math.min(co2A, co2B) === 0) {
-    return `<span class="tree-num">${trees} trees/yr</span>The zero-emission vehicle saves ${Math.round(diffKg).toLocaleString()} kg of CO₂ every year versus the ${hiName}.`;
+  if (lowest.co2 === 0) {
+    return `<span class="tree-num">${trees} trees/yr</span>${lowest.name} produces zero emissions — saving ${Math.round(diffKg).toLocaleString()} kg of CO₂ per year versus ${highest.name}.`;
   }
-  return `<span class="tree-num">${trees} trees/yr</span>Choosing the ${loName} over the ${hiName} avoids ${Math.round(diffKg).toLocaleString()} kg of CO₂ every year.`;
+  return `<span class="tree-num">${trees} trees/yr</span>Choosing ${lowest.name} over ${highest.name} avoids ${Math.round(diffKg).toLocaleString()} kg of CO₂ every year.`;
 }
 
 /* ── Compare ───────────────────────────────────────────────────────────────── */
