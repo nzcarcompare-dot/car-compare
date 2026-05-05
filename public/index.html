@@ -2,8 +2,10 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
+  <meta name="description" content="Compare the true cost of owning any NZ vehicle — fuel, running costs, CO₂ emissions and safety. Free tool. Enter a plate or pick from 43,000+ models.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMwZDExMTciLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMTYxYjIyIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJ0ZWFsIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMzYjgyZjYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMGVjZmIwIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI3IiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIzMiIgaGVpZ2h0PSIyLjUiIHJ4PSIxLjUiIGZpbGw9InVybCgjdGVhbCkiLz4KICA8cGF0aCBkPSJNNCAxMyBMNCAxMSBRNCAxMCA1IDEwIEw2LjUgMTAgTDggOCBROC41IDcuMiA5LjUgNy4yIEwxNiA3IFExNy4yIDcgMTcuOCA3LjggTDE5IDEwIEwyMCAxMCBRMjEgMTAgMjEgMTEgTDIxIDEzIFEyMSAxNCAyMCAxNCBMNSAxNCBRNCAxNCA0IDEzIFoiIGZpbGw9InVybCgjdGVhbCkiIG9wYWNpdHk9IjAuOSIvPgogIDxjaXJjbGUgY3g9IjcuNSIgY3k9IjE0IiByPSIxLjgiIGZpbGw9IiMwZDExMTciLz4KICA8Y2lyY2xlIGN4PSI3LjUiIGN5PSIxNCIgcj0iMSIgZmlsbD0idXJsKCN0ZWFsKSIvPgogIDxjaXJjbGUgY3g9IjE3LjUiIGN5PSIxNCIgcj0iMS44IiBmaWxsPSIjMGQxMTE3Ii8+CiAgPGNpcmNsZSBjeD0iMTcuNSIgY3k9IjE0IiByPSIxIiBmaWxsPSJ1cmwoI3RlYWwpIi8+CiAgPHRleHQgeD0iMTYiIHk9IjI1LjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCBCbGFjaywgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI4LjUiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9InVybCgjdGVhbCkiIGxldHRlci1zcGFjaW5nPSIwLjUiPk5aQ0M8L3RleHQ+Cjwvc3ZnPg==">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NZ Car Compare — True Cost of Car Ownership</title>
+  <title>NZ Car Compare — Compare Car Costs in NZ | Up to 5 Cars</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -54,7 +56,7 @@
     <div class="hero-inner">
       <div class="hero-label">Free · No signup · Built for NZ</div>
       <h1 class="hero-title">Which car is actually <em>cheaper</em><br>to own?</h1>
-      <p class="hero-sub">Compare any two vehicles by total cost of ownership — fuel, running costs, and purchase price — and find your break-even point.</p>
+      <p class="hero-sub">Compare up to 5 NZ vehicles side by side — fuel costs, running costs, CO₂ emissions and safety ratings — and find your break-even point. Enter a plate or pick from 43,000+ NZ models.</p>
       <div class="km-widget">
         <div class="km-widget-top">
           <span class="km-widget-label">How far do you drive each year?</span>
@@ -70,7 +72,8 @@
   <main>
 
     <!-- Car Cards -->
-    <div class="cars-grid">
+    <div class="cars-scroll-wrap">
+      <div class="cars-grid" id="cars-grid">
 
       <!-- CAR A -->
       <div class="car-card car-a" id="card-a">
@@ -93,12 +96,32 @@
             </a>
           </div>
 
-          <!-- Pick from list -->
+          <!-- Pick from list — cascade selector -->
           <div class="search-panel" id="a-browse">
-            <div class="search-box">
-              <input class="search-input" id="a-search" placeholder="Search make, model or year…" autocomplete="off">
-              <span class="search-icon">🔍</span>
-              <div class="dropdown-list" id="a-list"></div>
+            <div class="cascade" id="a-cascade">
+              <div class="cascade-step" id="a-step-make">
+                <div class="cascade-search-wrap">
+                  <input class="cascade-input" id="a-make-input" placeholder="Type a make… e.g. Toyota" autocomplete="off">
+                  <div class="cascade-dropdown" id="a-make-list"></div>
+                </div>
+              </div>
+              <div class="cascade-step hidden" id="a-step-model">
+                <div class="cascade-crumb" id="a-crumb-make"></div>
+                <div class="cascade-search-wrap">
+                  <input class="cascade-input" id="a-model-input" placeholder="Type a model… e.g. Corolla" autocomplete="off">
+                  <div class="cascade-dropdown" id="a-model-list"></div>
+                </div>
+              </div>
+              <div class="cascade-step hidden" id="a-step-year">
+                <div class="cascade-crumb" id="a-crumb-model"></div>
+                <select class="cascade-year-select" id="a-year-select"></select>
+              </div>
+              <div class="cascade-step hidden" id="a-step-variant">
+                <div class="cascade-crumb" id="a-crumb-year"></div>
+                <div class="cascade-variants" id="a-variant-list"></div>
+              </div>
+              <button class="cascade-reset hidden" id="a-cascade-reset">↩ Start over</button>
+              <div class="cascade-db-note">Vehicle database current to April 2026. Newer models may not appear — use plate lookup instead.</div>
             </div>
           </div>
 
@@ -152,6 +175,15 @@
             <div class="field"><label>Petrol use (L/100km)</label><input type="number" id="a-pl100" value="5" step="0.1" min="0"></div>
             <div class="field"><label>Electric use (kWh/100km)</label><input type="number" id="a-pkwh" value="18" step="0.5" min="0"></div>
             <div class="field"><label>% driven on electric</label><input type="number" id="a-ppct" value="50" step="5" min="0" max="100"></div>
+          <!-- EV info panel — shown when EV or PHEV selected -->
+          <div class="ev-info-panel hidden" id="a-ev-panel">
+            <div class="ev-panel-header" id="a-ev-toggle">
+              <span class="ev-panel-icon">⚡</span>
+              <span class="ev-panel-title">New to EVs? What you need to know</span>
+              <span class="ev-panel-arrow">▾</span>
+            </div>
+            <div class="ev-panel-body hidden" id="a-ev-body"></div>
+          </div>
           </div>
         </div>
       </div>
@@ -177,12 +209,32 @@
             </a>
           </div>
 
-          <!-- Pick from list -->
+          <!-- Pick from list — cascade selector -->
           <div class="search-panel" id="b-browse">
-            <div class="search-box">
-              <input class="search-input" id="b-search" placeholder="Search make, model or year…" autocomplete="off">
-              <span class="search-icon">🔍</span>
-              <div class="dropdown-list" id="b-list"></div>
+            <div class="cascade" id="b-cascade">
+              <div class="cascade-step" id="b-step-make">
+                <div class="cascade-search-wrap">
+                  <input class="cascade-input" id="b-make-input" placeholder="Type a make… e.g. Toyota" autocomplete="off">
+                  <div class="cascade-dropdown" id="b-make-list"></div>
+                </div>
+              </div>
+              <div class="cascade-step hidden" id="b-step-model">
+                <div class="cascade-crumb" id="b-crumb-make"></div>
+                <div class="cascade-search-wrap">
+                  <input class="cascade-input" id="b-model-input" placeholder="Type a model… e.g. Corolla" autocomplete="off">
+                  <div class="cascade-dropdown" id="b-model-list"></div>
+                </div>
+              </div>
+              <div class="cascade-step hidden" id="b-step-year">
+                <div class="cascade-crumb" id="b-crumb-model"></div>
+                <select class="cascade-year-select" id="b-year-select"></select>
+              </div>
+              <div class="cascade-step hidden" id="b-step-variant">
+                <div class="cascade-crumb" id="b-crumb-year"></div>
+                <div class="cascade-variants" id="b-variant-list"></div>
+              </div>
+              <button class="cascade-reset hidden" id="b-cascade-reset">↩ Start over</button>
+              <div class="cascade-db-note">Vehicle database current to April 2026. Newer models may not appear — use plate lookup instead.</div>
             </div>
           </div>
 
@@ -236,10 +288,28 @@
             <div class="field"><label>Petrol use (L/100km)</label><input type="number" id="b-pl100" value="5" step="0.1" min="0"></div>
             <div class="field"><label>Electric use (kWh/100km)</label><input type="number" id="b-pkwh" value="18" step="0.5" min="0"></div>
             <div class="field"><label>% driven on electric</label><input type="number" id="b-ppct" value="50" step="5" min="0" max="100"></div>
+          <!-- EV info panel — shown when EV or PHEV selected -->
+          <div class="ev-info-panel hidden" id="b-ev-panel">
+            <div class="ev-panel-header" id="b-ev-toggle">
+              <span class="ev-panel-icon">⚡</span>
+              <span class="ev-panel-title">New to EVs? What you need to know</span>
+              <span class="ev-panel-arrow">▾</span>
+            </div>
+            <div class="ev-panel-body hidden" id="b-ev-body"></div>
+          </div>
           </div>
         </div>
       </div>
-    </div>
+        <!-- Add car button — renders as a card in the row -->
+        <div class="car-card-add" id="add-car-card">
+          <button class="add-car-btn" id="add-car-btn">
+            <span class="add-car-plus">+</span>
+            <span class="add-car-btn-label">Add car<br><small>up to 5 total</small></span>
+          </button>
+        </div>
+      </div><!-- /cars-grid -->
+    </div><!-- /cars-scroll-wrap -->
+
 
     <!-- Assumptions -->
     <div class="assumptions-card">
@@ -307,10 +377,6 @@
           <button class="tab-btn" data-tab="details">📋 Full comparison</button>
         </div>
         <div class="tab-panel active" id="tab-overview">
-          <div class="chart-legend">
-            <div class="leg-item"><div class="leg-sw" style="background:#3b82f6"></div><span id="leg-a">Car A</span></div>
-            <div class="leg-item"><div class="leg-sw" style="background:#0ecfb0"></div><span id="leg-b">Car B</span></div>
-          </div>
           <div class="chart-wrap"><canvas id="chart"></canvas></div>
           <p class="chart-caption">Cumulative total cost of ownership (purchase price + running costs)</p>
         </div>

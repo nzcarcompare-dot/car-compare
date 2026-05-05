@@ -809,9 +809,6 @@ function addExtraCar() {
   // Wire up EV panel
   initEVPanel(id);
 
-  // Wire up EV panel for extra card
-  initEVPanel(id);
-
   // Wire up mode toggle
   card.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
