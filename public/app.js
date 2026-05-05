@@ -427,7 +427,7 @@ async function lookupPlate(car, retryCount = 0) {
     // Show Carjam link (only if element exists — it's inside the plate panel)
     const carjamLink = el(car + '-carjam');
     if (carjamLink) {
-      carjamLink.href = 'https://www.carjam.co.nz/car/?plate=' + encodeURIComponent(plate);
+      carjamLink.href = 'https://www.carjam.co.nz/?partner=nzcarcompare&plate=' + encodeURIComponent(plate);
       carjamLink.classList.remove('hidden');
     }
 
